@@ -14,6 +14,7 @@ July 14, 2024
 5. Cancer registry tabular data downloaded from the UKB RAP.
 6. Files mapping plate IDs and batch numbers to UKB Olink data.
 7. Raw China Kadoorie Biobank (CKB) questionnaire, Olink, and endpoints data.
+8. FinnGen proteomics and endpoints data.
 
 
 # Code files are run in the following order:

@@ -25,6 +25,16 @@ The following is a description of the various files and directories found within
 
 Files are in R, R Markdown, Python, and Jupyter Notebook format. R Markdown scripts are not currently written or optimized to be knit and published via R Markdown without additional configuration in the code.
 
+Licensing
+------
+This project is licensed under a dual-license model:
+
+1. **Academic Use**: Free under the MIT License for academic and non-commercial use.
+2. **Commercial Use**: Requires a commercial license.
+
+For more information on licensing and to obtain a commercial license, please contact Austin Argentieri (aargentieri@mgh.harvard.edu).
+
+
 Author
 ------
 

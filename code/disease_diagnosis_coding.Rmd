@@ -1,0 +1,1002 @@
+# coding  chronic disease diagnoses
+
+```{r packages}
+library(tidyr)
+library(dplyr)
+library(readr)
+library(Hmisc)
+```
+
+```{r date}
+# date
+date <- Sys.Date()
+
+```
+
+```{r ICD_codes}
+
+# load ICD-10 codings for major NCDs
+# source("gs://ukb-diverse-pops/proteomics/austina/data/health_outcomes/codes/icd10_codings.R")
+source("/Users/aargenti/Documents/Broad_UKB/code/icd9_codings.R")
+
+# load ICD-9 codings for major NCDs
+# source("gs://ukb-diverse-pops/proteomics/austina/data/health_outcomes/codes/icd9_codings.R")
+source("/Users/aargenti/Documents/Broad_UKB/code/icd10_codings.R")
+
+```
+
+```{r read_codes}
+
+# load read code conversion tables
+read_v2_icd9 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v2_icd9.csv')
+read_v3_icd9 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v3_icd9.csv')
+read_v2_icd10 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v2_icd10.csv')
+read_v3_icd10 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v3_icd10.csv')
+
+# make empty list
+read_codes <- as.list(rep(1,length(icd10_include)))
+
+# get all read codee equivalents of ICD9/10 codes
+for (i in seq_along(icd10_include)) {
+  icd10_v2 <- read_v2_icd10$read_code[which(read_v2_icd10$icd10_code %in% icd10_include[[i]])]
+  icd10_v3 <- read_v3_icd10$read_code[which(read_v3_icd10$icd10_code %in% icd10_include[[i]])]
+  icd9_v2 <- read_v2_icd9$read_code[which(read_v2_icd9$icd9_code %in% icd9_include[[i]])]
+  icd9_v3 <- read_v3_icd9$read_code[which(read_v3_icd9$icd9_code %in% icd9_include[[i]])]
+  
+  read_codes[[i]] <- c(icd10_v2, icd10_v3, icd9_v2, icd9_v3)
+}
+
+```
+
+```{r events_list}
+
+# list of diseases
+events <- c(
+  Cs(
+    IBD,
+    endometriosis,
+    t2diabetes,
+    IHD,
+    ischemic_stroke,
+    IH_stroke,
+    SH_stroke,
+    all_stroke,
+    emphysema_COPD,
+    COPD,
+    emphysema,
+    liver, 
+    kidney,
+    all_dementia,
+    vasc_dementia,
+    alzheimers,
+    parkinsons,
+    rheumatoid,
+    macular_degen,
+    osteoporosis,
+    osteoarthritis,
+    hypertension,
+    obesity,
+    dyslipidemia
+  )
+)
+
+```
+
+```{r import_hesin}
+
+# import HES diagnoses
+hesin <- read.csv("/Users/aargenti/Documents/proteomic_age/data/hesin_may_23_2023.csv")
+hesin_diag <- read.csv("/Users/aargenti/Documents/proteomic_age/data/hesin_diag_may_23_2023.csv")
+
+# join by eid and ins_index
+hesin_table <- merge(
+  hesin,
+  hesin_diag,
+  by = c('eid', 'ins_index')
+)
+
+# remove large objects from memory
+rm(hesin, hesin_diag)
+gc()
+```
+
+```{r import_gp_data}
+
+# import GP diagnoses
+gp_clinical <- read.csv("/Users/aargenti/Documents/proteomic_age/data/gp_clinical_june_14_2023.csv")
+
+colnames(gp_clinical)
+head(gp_clinical)
+```
+
+```{r interview_illness_codes}
+
+### data field 20002 (non-cancer diagnoses)
+
+# IBD
+IBD_dx <- c(
+    # IBD
+    "1154")
+
+# Endometriosis
+endometriosis_dx <- c(
+    # endometriosis
+    "1402")
+
+# type II diabetes (E11)
+t2diabetes_dx <- c(
+    # type 2 diabetes
+    "1223")
+
+# ischemic heart diseases (I20–I25)
+IHD_dx <- c(
+    # angina
+    "1074", 
+    # heart attack/myocardial infarction
+    "1075")
+
+ischemic_stroke_dx <- c(
+    # ischaemic stroke
+    "1583")
+
+SH_stroke_dx <- c(
+    # subarachnoid haemorrhage
+    "1086")
+
+IH_stroke_dx <- c(
+    # brain haemorrhage
+    "1491")
+
+all_stroke_dx <- c(
+    # stroke
+    "1081", 
+    # subarachnoid haemorrhage
+    "1086", 
+    # brain haemorrhage
+    "1491", 
+    # ischaemic stroke
+    "1583")
+
+# COPD and emphysema (J40–J47)
+emphysema_COPD_dx <- c(
+    # chronic obstructive airways disease/COPD
+    "1112", 
+    # Emphysema/chronic bronchitis
+    "1113",
+    # emphysema
+    "1472") 
+
+# COPD and emphysema (J40–J47)
+COPD_dx <- c(
+    # chronic obstructive airways disease/COPD
+    "1112") 
+
+# COPD and emphysema (J40–J47)
+emphysema_dx <- c(
+    # Emphysema/chronic bronchitis
+    "1113",
+    # emphysema
+    "1472") 
+
+# chronic liver disease (K70, K73-K74)
+liver_dx <- c(
+    # non-infective hepatitis
+    "1157", 
+    # liver failure/cirrhosis
+    "1158", 
+    # alcoholic liver disease / alcoholic cirrhosis
+    "1604")
+
+# chronic kidney disease (N18)
+kidney_dx <- c(
+    # renal/kidney failure
+    "1192", 
+    # renal failure requiring dialysis
+    "1193", 
+    # renal failure not requiring dialysis
+    "1194")
+
+# all-cause dementia (A81.0, F00-F03, F05.1, F10.6, G30-G31, I67.3)
+all_dementia_dx <- c(
+    # dementia/alzheimers/cognitive impairment
+    "1263")
+
+# vascular dementia (F01, I67.3)
+vasc_dementia_dx <- NULL
+
+# Alzheimer's (F00, G30)
+alzheimers_dx <- NULL
+
+# Parkinsons (G20-G22)
+parkinsons_dx <- c(
+    # parkinsons disease
+    "1262")
+
+# rheumatoid arthritis (M05-06)
+rheumatoid_dx <- c(
+    # rheumatoid arthritis
+    "1464")
+
+# macular degeneration (H35.3)
+macular_dx <- c(
+    # macular degeneration
+    "1528")
+
+# osteoporosis (M80-M81)
+osteoporosis_dx <- c(
+    # osteoporosis
+    "1309")
+
+# osteoarthritis (M15-M19)
+osteoarthritis_dx <- c(
+    # osteoarthritis
+    "1465")
+
+# hypertension (I10–I15)
+hypertension_dx <- c(
+    # hypertension
+    "1065", 
+    # essential hypertension
+    "1072")
+
+# create list of all codes
+dx_codes <- list(
+  IBD_dx,
+  endometriosis_dx,
+  t2diabetes_dx,
+  IHD_dx,
+  ischemic_stroke_dx,
+  IH_stroke_dx,
+  SH_stroke_dx,
+  all_stroke_dx,
+  emphysema_COPD_dx,
+  COPD_dx,
+  emphysema_dx,
+  liver_dx,
+  kidney_dx,
+  all_dementia_dx,
+  vasc_dementia_dx,
+  alzheimers_dx,
+  parkinsons_dx,
+  rheumatoid_dx,
+  macular_dx,
+  osteoporosis_dx,
+  osteoarthritis_dx,
+  hypertension_dx,
+  # empty for obesity
+  NULL,
+  # empty for dyslipidemia
+  NULL
+)
+
+
+```
+
+```{r import_interview_data, eval=FALSE}
+# import main UKB dataset
+dat_dx <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/2. First raw dataset from UKB/ukb42114.rds")
+
+# non-cancer codes
+prefix <- "f.20002.0."
+suffix <- seq(0,33)
+illness_all <- paste0(prefix, suffix)
+
+# rename
+dat_dx$eid <- dat_dx$f.eid
+
+# subset to just clinical iterview data
+dat_dx <- dat_dx[c("eid", illness_all)]
+
+# save dataset with just dx data
+save(dat_dx, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/2. First raw dataset from UKB/interview_dx_data.RData")
+```
+
+``` {r code_baseline_dx_vars}
+
+load("/Users/aargenti/Documents/proteomic_age/data/interview_dx_data.RData")
+
+library(Hmisc)
+library(glue)
+
+# non-cancer codes
+prefix <- "f.20002.0."
+suffix <- seq(0,33)
+illness_all <- paste0(prefix, suffix)
+
+# loop to code baseline dx variables
+for (i in seq_along(events)) {
+  
+  # set column name and dx list per iteration
+  dx_col <- glue("{events[i]}_baseline_dx")
+  code_list <- dx_codes[[i]]
+  
+  # code diagnosis
+  dat_dx[dx_col] <- as.numeric(
+    rowSums(
+      sapply(dat_dx[illness_all], "%in%", code_list),
+      na.rm = TRUE) > 0)
+  
+  # progress
+  cat('Completed:', i, '/', length(events), '\r')
+
+}
+
+# list of column names for baseline clinical iterview
+baseline_dx_columns <- paste0(events, "_baseline_dx")
+
+dat_dx <- subset(
+  dat_dx,
+  select = c(
+    "eid",
+    baseline_dx_columns
+  )
+)
+
+# save
+save(dat_dx, file = glue("/Users/aargenti/Documents/proteomic_age/data/baseline_dx_data_{date}.RData"))
+```
+
+```{r import_raw_data}
+
+# import main UKB dataset
+# dat <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_may_21_2022.rds")
+
+load("/Users/aargenti/Documents/proteomic_age/data/ukb_imputation_jul_25_2023.RData")
+dat <- imp_data[[1]]
+```
+
+```{r recode_medications}
+
+# medication intake information was asked separately in men and women:
+## https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=6177
+## https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=6153
+
+# recombine into single variable
+merge_meds <- function(x) {
+    
+    # recode
+    x$insulin <- 
+        ifelse(
+            x$sex == "Male" & x$insulin == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$insulin == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$insulin_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$insulin_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$insulin <- factor(x$insulin,
+                        ordered = FALSE,
+                        levels = c("No", "Yes"))
+    
+    # set reference
+    x$insulin <- relevel(x$insulin, 
+                         ref = "No")
+    
+    # recode
+    x$blood_pressure_meds <- 
+        ifelse(
+            x$sex == "Male" & x$blood_pressure_meds == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$blood_pressure_meds == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$blood_pressure_meds_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$blood_pressure_meds_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$blood_pressure_meds <- factor(x$blood_pressure_meds,
+                                    ordered = FALSE,
+                                    levels = c("No", "Yes"))
+    
+    # set reference
+    x$blood_pressure_meds <- relevel(x$blood_pressure_meds, 
+                                     ref = "No")
+    
+    # recode
+    x$cholesterol_meds <- 
+        ifelse(
+            x$sex == "Male" & x$cholesterol_meds == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$cholesterol_meds == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$cholesterol_meds_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$cholesterol_meds_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$cholesterol_meds <- factor(x$cholesterol_meds,
+                                 ordered = FALSE,
+                                 levels = c("No", "Yes"))
+    
+    # set reference
+    x$cholesterol_meds <- relevel(x$cholesterol_meds, 
+                                  ref = "No")
+    
+    return(x)
+}
+
+# run function
+dat <- merge_meds(dat)
+
+# column names of self-report variables to keep
+baseline_questionnaire_columns = c(
+  'heart_attack_diagnosis', 
+  'angina_diagnosis', 
+  'stroke_diagnosis',
+  'bronchitis_emphysema_diagnosis',
+  'diabetes_diagnosis',
+  'high_blood_pressure_diagnosis',
+  'insulin'
+)
+
+# subset data
+dat <- subset(
+  dat, 
+  select = c("eid",
+             "recruitment_date",
+             "recruitment_centre",
+             "cholesterol_meds",
+             "blood_pressure_meds",
+             "insulin",
+             "cholesterol",
+             "LDL_direct",
+             "HDL_cholesterol",
+             "triglycerides",
+             "BMI",
+             baseline_questionnaire_columns
+  )
+)
+
+# merge with baseline interview dx data
+dat <- merge(
+  dat,
+  dat_dx,
+  by = "eid"
+)
+
+```
+
+``` {r COD_prep}
+
+# import cause of death (COD) data. 
+# more info here: http://biobank.ndph.ox.ac.uk/showcase/showcase/docs/DeathLinkage.pdf.
+dat_COD <- read.csv("/Users/aargenti/Documents/proteomic_age/data/death_cause_may_23_2023.csv")
+
+
+### prepare cause of death data
+
+### transform COD data from long format (with multiple rows per eid) 
+### to wide format (multiple columns and one row per eid)
+dat_COD <-
+    pivot_wider(dat_COD,
+                # any new value in "ins_index" or "arr_index" becomes a new column
+                names_from = c(ins_index,
+                               arr_index),
+                # populate new columns with corresponding value from COD column
+                values_from = cause_icd10) 
+
+# remove level variable (it's redundant to the arr_index information)
+dat_COD <- subset(dat_COD,
+                  select = -c(level))
+
+### the dataset now has two rows for each eid: 
+### instance index = 0 data are all in one row and instance = 1 are all on second
+### now we collapse the two rows for each eid into one row
+
+# prepare dataset
+dat_COD <- sapply(dat_COD, as.character) # data need to be character class for transpose function
+dat_COD[is.na(dat_COD)] <- "" # NA values will cause errors in the transpose
+dat_COD <- as.data.frame(dat_COD) # convert back to df
+
+# transpose dataset by merging all rows with a unique eid into one row
+dat_COD %>%
+    group_by(eid) %>%
+    summarise_all(
+        funs(trimws(paste(., collapse = "")))) -> dat_COD
+
+dat_COD[dat_COD == ""] <- NA # convert empty cells back to NA
+
+### replace column names
+
+# new column names
+prefix <- "cause_icd.0."
+suffix <- seq(0,14)
+ICD10_0 <- paste0(prefix, suffix)
+
+# old names to replace
+prefix <- "0_"
+suffix <- seq(0,14)
+replace1 <- paste0(prefix, suffix)
+
+# new column names
+prefix <- "cause_icd.1."
+suffix <- seq(0,9)
+ICD10_1 <- paste0(prefix, suffix)
+
+# old names to replace
+prefix <- "1_"
+suffix <- seq(0,9)
+replace2 <- paste0(prefix, suffix)
+
+# loop to replace instance = 0 column names
+for(j in seq_along(replace1)){
+  names(dat_COD)[names(dat_COD) == replace1[j]] <- ICD10_0[j]
+}
+
+# loop to replace instance = 1 column names
+for(j in seq_along(replace2)){
+  names(dat_COD)[names(dat_COD) == replace2[j]] <- ICD10_1[j] 
+}
+
+# reorder columns in ascending order
+col_order <- c("eid", ICD10_0, ICD10_1)
+dat_COD <- dat_COD[, col_order]
+
+```
+
+```{r mort_prep}
+
+# import mortality data
+mort <- read.csv("/Users/aargenti/Documents/proteomic_age/data/death_may_23_2023.csv")
+
+
+### prepare death date data 
+
+# remove duplicate date of death record row for any participant (e.g., where "ins_index = 1"). 
+# date in ins_index = 1 shows the same date so it is redundant
+mort <- mort[which(mort$ins_index == '0'), ]
+
+# check how date is formatted for correct as.Date formatting
+head(mort$date_of_death) 
+
+# set as date
+mort$date_of_death <- as.Date(mort$date_of_death, 
+                              format = "%Y-%m-%d")
+
+# check for any formatting errors
+head(mort$date_of_death) 
+
+### merge date and cause of death data 
+# Note: some participants have a date of death but not cause
+mort <- merge(
+  mort,
+  dat_COD, 
+  by = "eid", 
+  all.x = TRUE
+) 
+```
+
+```{r cod_vars}
+
+### merge ICD data and mortality data
+dat <- merge(
+  dat, 
+  mort, 
+  by = "eid",
+  all = TRUE
+) 
+
+
+### create mortality event indicators by primary or secondary cause of death
+mort_ICD <- c(ICD10_0, ICD10_1)
+
+
+### Cause of death indicators
+
+for (i in seq_along(events)) {
+  
+  # make colname
+  mort_col <- paste0(events[i], "_mort_any")
+  
+  # code cause of death with ICD code in any of the primary or secondary positions
+  dat[mort_col] <- as.numeric(
+    rowSums(
+      sapply(dat[mort_ICD], "%in%", icd10_include[[i]]),
+      na.rm = TRUE) > 0)
+  
+  cat('completed', i, '/', length(events), '\r')
+
+}
+
+```
+
+``` {r event_and_date}
+
+# make recruitment center a factor
+dat$recruitment_centre <- factor(dat$recruitment_centre)
+
+# remove 1 participant with NA for recruitment centre
+dat <- dat[which(!is.na(dat$recruitment_centre)), ]
+
+### Event indicators and diagnosis dates
+
+for (i in seq_along(events)) {
+  
+  # set event column name
+  event_col <- paste0(events[i], "_event")
+  date_col <- paste0(events[i], "_date")
+  
+  # subset hesin data to those who have a matching diagnosis
+  data <- hesin_table %>%
+    filter(diag_icd10 %in% icd10_include[[i]] | diag_icd9 %in% icd9_include[[i]])
+  
+  # create date column with episode start date, or else admission date if NA
+  data$date_hes <- ifelse(is.na(data$epistart) | 
+                            data$epistart == "", 
+                          data$admidate, 
+                          data$epistart)
+  
+  # code date column as Date
+  data$date_hes <- as.Date(data$date_hes, format = "%Y-%m-%d")
+  
+  # Order the dataframe by eid and date
+  data <- data[order(data$eid, data$date_hes), ]
+  
+  # Remove duplicates, keeping only the first occurrence (earliest date) for each eid
+  data <- data[!duplicated(data$eid), ]
+  
+  # combine icd10 and icd9 diagnosis columns
+  data <- data %>% 
+    unite("diagnosis_hes", 
+          diag_icd10:diag_icd9, 
+          sep = "", 
+          remove = FALSE, 
+          na.rm = TRUE)
+  
+  # subset gp data to those who have a matching diagnosis
+  data2 <- gp_clinical %>%
+    filter(read_2 %in% read_codes[[i]] | read_3 %in% read_codes[[i]])
+  
+  # code date column as Date
+  data2$date_gp <- as.Date(data2$event_dt, format = "%Y-%m-%d")
+  
+  # Order the dataframe by eid and date
+  data2 <- data2[order(data2$eid, data2$date_gp), ]
+  
+  # Remove duplicates, keeping only the first occurrence (earliest date) for each eid
+  data2 <- data2[!duplicated(data2$eid), ]
+  
+  # combine read v2 and read v3 diagnosis columns
+  data2 <- data2 %>% 
+    unite("diagnosis_gp", 
+          read_2:read_3, 
+          sep = "", 
+          remove = FALSE, 
+          na.rm = TRUE)
+  
+  
+  # merge HES and GP data
+  data <- merge(
+    data,
+    data2,
+    by = 'eid',
+    all.x = TRUE,
+    all.y = TRUE
+  )
+  
+  # get earliest date if both records have a diagnosis
+  # or else take the non-empty date
+  data$date <- 
+    dplyr::if_else(
+      !is.na(data$date_hes) & !is.na(data$date_gp),
+      pmin(data$date_hes, data$date_gp),
+      dplyr::if_else(
+        is.na(data$date_hes),
+        data$date_gp,
+        data$date_hes
+      )
+    )
+  
+  # combine HES and GP diagnosis columns
+  data <- data %>% 
+    unite("diagnosis", 
+          diagnosis_hes:diagnosis_gp, 
+          sep = "", 
+          remove = FALSE, 
+          na.rm = TRUE)
+  
+  # subset to diagnosis and date columns
+  data <- data[c('eid', 'date', 'diagnosis')]
+  
+  # change column names
+  colnames(data) <- c('eid', date_col, 'diagnosis')
+  
+  # merge with data
+  dat <- merge(
+    dat,
+    data,
+    by = 'eid',
+    all.x = TRUE
+  )
+  
+  # code event indicator
+  dat[[event_col]] <- ifelse(is.na(dat$diagnosis), 0, 1)
+  # remove old column
+  dat <- dat[which(colnames(dat) != "diagnosis")]
+
+  cat(event_col, '\n')
+  cat("number of cases:", nrow(data))
+  print(table(dat[[event_col]]))
+  print(head(dat[[date_col]]))
+  flush.console()
+
+  # remove new datasets
+  rm(data, data2)
+  
+  # progress
+  cat('completed', i, '/', length(events), '\r')
+}
+```
+
+```{r censoring}
+
+### Censoring dates 
+
+wales <- c(
+    # cardiff
+    "11003",
+    # wrexham
+    "11023",
+    # swansea
+    "11022"
+)
+
+scotland <- c(
+    # edinburgh
+    "11005", 
+    # glasgow
+    "11004"
+)
+
+# get all england recruitment centers 
+england <- levels(dat$recruitment_centre)[which(levels(dat$recruitment_centre) %nin% c(wales, scotland))]
+
+library(glue)
+
+for (event in events) {
+  
+  # set censor date column name
+  censor_col <- glue('{event}_censor_date')
+  # set event date column name
+  date_col <- glue('{event}_date')
+  # set event column name
+  event_col <- glue('{event}_event')
+  # set mortality cause of death column name
+  mort_col <- glue('{event}_mort_any')
+  # set disease survival time column name
+  survival_col <- glue('{event}_survival_time')
+  
+  # duplicate event date
+  dat[censor_col] <- dat[date_col]
+  
+  ### add censor date by country of recruitment
+  
+  # row indices
+  scotland_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% scotland)
+  wales_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% wales)
+  england_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% england)
+  
+  # Scotland
+  dat[[censor_col]][scotland_index] <- "2021-7-31"
+  # Wales
+  dat[[censor_col]][wales_index] <- "2018-2-28"
+  # England
+  dat[[censor_col]][england_index] <- "2022-10-31"
+  
+  # make date of death as the censoring date
+  # if participant is not a case, but died earlier than standard censoring date
+  index <- which(
+    !is.na(dat$date_of_death) & 
+      dat[[event_col]] == 0 &
+      dat$date_of_death < dat[[censor_col]]
+  )
+  # set as date of death
+  dat[[censor_col]][index] <- dat$date_of_death[index]
+  
+  ### augment event indicator with mortality information 
+
+  # index of rows where diagnosis event is 0, but mortality record shows the disease as a cause
+  index <- which(dat[[event_col]] == 0 & dat[[mort_col]] == 1)
+  cat(event, 'number of rows to add from death register:', length(index), '\n')
+  flush.console()
+  
+  # recode as diagnosis event = 1
+  dat[[event_col]][index] <- 1
+  
+  # make date of death as the censoring date for these participants
+  dat[[censor_col]][index] <- dat$date_of_death[index]
+  
+  ### survival time
+  dat[[survival_col]] <- as.numeric(dat[[censor_col]] - dat$recruitment_date)
+}
+
+```
+
+```{r prevalent_and_incident_dx}
+
+for (event in events) {
+  
+  # define column names
+  event_col <- glue("{event}_event")
+  prev_event <- glue("prevalent_{event}")
+  incident_event <- glue("incident_{event}")
+  censor_date <- glue("{event}_censor_date")
+  interview_dx <- glue("{event}_baseline_dx")
+  
+  # define all participants with diagnosis before or equal to recruitment date
+  baseline_ncd <- which(dat[[censor_date]] <= dat$recruitment_date)
+  
+  # initialize prevalent diagnosis variable
+  dat[[prev_event]] <- 0
+  # code those with diagnosis before recruitment to 1
+  dat[[prev_event]][baseline_ncd] <- 1
+  # code those with reported diagnosis in clinical interview to 1
+  dat[[prev_event]][which(dat[[interview_dx]] == 1)] <- 1
+  
+  
+  # extra variables
+  
+  if (event == 't2diabetes') {
+    dat[[prev_event]][which(dat$insulin == "Yes")] <- 1
+    dat[[prev_event]][which(dat$hbA1c >= 48)] <- 1
+    dat[[prev_event]][which(dat$glucose >= 11.1)] <- 1
+  }
+  
+  if (event == 'dyslipidemia') {
+    dat[[prev_event]][which(dat$cholesterol_meds == "Yes")] <- 1
+    dat[[prev_event]][which(dat$cholesterol >= (240 / 38.67))] <- 1
+    dat[[prev_event]][which(dat$LDL_direct >= (160 / 38.67))] <- 1
+    dat[[prev_event]][which(dat$HDL_cholesterol < (40 / 38.67))] <- 1
+    dat[[prev_event]][which(dat$triglycerides >= (200 / 88.57))] <- 1
+  }
+  
+  if (event == 'obesity') {
+    dat[[prev_event]] <- ifelse(dat$BMI >= 30, 1, 0)
+  }
+  
+  if (event == 'hypertension') {
+    dat[[prev_event]][which(dat$high_blood_pressure_diagnosis == "Yes")] <- 1
+    dat[[prev_event]][which(dat$blood_pressure_meds == "Yes")] <- 1
+  }
+  
+  # class as factor
+  dat[[prev_event]] <- factor(dat[[prev_event]])
+  dat[[prev_event]] <- relevel(dat[[prev_event]], ref = "0")
+
+  # code incident events
+  dat[[incident_event]] <- ifelse(
+    # set prevalent cases to NA
+    dat[[prev_event]] == 1,
+    NA,
+    ifelse(
+      # in remaining, set those with event to 1
+      dat[[event_col]] == 1,
+      1,
+      0
+    )
+  )
+  
+}
+
+```
+
+```{r gp_indicator}
+
+## make indicator variable for having primary care data
+
+# remove duplicate eids
+gp_data <- gp_clinical[!duplicated(gp_clinical$eid), ]
+
+# make new column
+gp_data$has_gp_data <- 1
+
+# subset
+gp_data <- gp_data[c('eid', 'has_gp_data')]
+
+# merge with disease data
+dat <- merge(
+  dat,
+  gp_data,
+  by = 'eid',
+  all.x = TRUE
+)
+  
+# recode
+dat$has_gp_data[which(is.na(dat$has_gp_data))] <- 0
+
+```
+
+```{r case_table}
+
+table <- data.frame(matrix(ncol = 5, nrow = length(events)))
+
+table[1] <- events
+
+for (k in seq_along(events)) {
+  prev_col <- glue('prevalent_{events[k]}')
+  incident_col <- glue('incident_{events[k]}')
+  table[k, 2] <- nrow(dat[which(dat[[prev_col]] == 0 & dat[[incident_col]] == 0), ])
+}
+
+for (k in seq_along(events)) {
+  prev_col <- glue('prevalent_{events[k]}')
+  incident_col <- glue('incident_{events[k]}')
+  table[k, 3] <- table(dat[[prev_col]])[2] + table(dat[[incident_col]])[2]
+}
+
+for (k in seq_along(events)) {
+  col <- glue('prevalent_{events[k]}')
+  table[k, 4] <- table(dat[[col]])[2]
+}
+
+for (k in seq_along(events)) {
+  col <- glue('incident_{events[k]}')
+  table[k, 5] <- table(dat[[col]])[2]
+}
+
+colnames(table) <- c('Outcome', 'Disease free', 'All cases', 'Prevalent cases', 'incident cases')
+
+print(table)
+write.csv(table, row.names = FALSE, glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_counts_{date}.csv"))
+```
+
+```{r save}
+
+# list of columns
+event_cols <- paste0(events, "_event")
+date_cols <- paste0(events, "_date")
+censor_cols <- paste0(events, "_censor_date")
+survival_cols <- paste0(events, "_survival_time")
+prev_cols <- paste0("prevalent_", events)
+incident_cols <- paste0("incident_", events)
+
+# all columns
+all_cols <- c(
+  "eid", 
+  event_cols, 
+  date_cols, 
+  censor_cols, 
+  survival_cols, 
+  prev_cols, 
+  incident_cols,
+  'has_gp_data'
+)
+
+# subset data
+dat_NCD <- dat[all_cols]
+
+# save
+save(dat_NCD, file = glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_{date}.RData"))
+
+write.csv(dat_NCD, row.names = FALSE, file = glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_{date}.csv"))
+```
+

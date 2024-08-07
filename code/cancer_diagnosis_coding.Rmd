@@ -1,0 +1,709 @@
+```{r packages}
+library(tidyr)
+library(dplyr)
+library(readr)
+library(Hmisc)
+```
+
+```{r ICD-10}
+
+# load ICD-10 codings for major cancers
+source("/Users/aargenti/Documents/proteomic_age/icd10_cancer_codings.R")
+
+
+```
+
+```{r ICD-9}
+icd9list <- read_delim("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/icd9_coding87.tsv", 
+    "\t", 
+    escape_double = FALSE, 
+    trim_ws = TRUE)
+
+
+# breast cancer
+code <- "174"
+breast_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# lung cancer
+code <- "162"
+lung_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# prostate cancer
+code <- "185"
+prostate_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# colorectal cancer
+codes <- c("153", "154")
+colorectal_cancer_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# skin cancer
+codes <- c("172","173")
+skin_cancer_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# non-hodgkin lymphoma
+codes <- c("200", "202")
+nh_lymphoma_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# pancreatic cancer
+code <- "157"
+pancreatic_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Kidney cancer
+code <- "189"
+kidney_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# bladder cancer
+code <- "188"
+bladder_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# oral
+codes <- c("140", "141", "143", "144", "145", "146", "147", "148", "149")
+oral_cancer_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# uterus
+code <- "179"
+uterus_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# leukemia
+codes <- c("204", "205", "206", "207", "208")
+leukemia_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# esophageal
+code <- "150"
+eso_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# ovarian
+code <- "183"
+ovarian_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# liver
+code <- "155"
+liver_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# stomach
+codes <- c("151", "152")
+stomach_cancer_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# myeloma
+code <- "203"
+myeloma_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# secondary malignant neoplasm
+codes <- c("196", "198")
+secondary_cancer_icd9 <- as.vector(
+  unlist(
+    sapply(codes, function(x) icd9list$coding[which(startsWith(icd9list$coding, x))])
+  )
+)
+
+# brain
+code <- "191"
+brain_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# thyroid
+code <- "193"
+thyroid_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# cervical
+code <- "180"
+cervical_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Mesothelioma
+code <- "163"
+mesothelioma_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Testis
+code <- "186"
+testicular_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Hodgkin lymphoma
+code <- "201"
+h_lymphoma_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Larynx
+code <- "161"
+larynx_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+# Cancer of unknown primary (CUP)
+code <- "199"
+CUP_cancer_icd9 <- icd9list$coding[which(startsWith(icd9list$coding, code))]
+
+
+# create list of all NCD codes
+icd9_include <- list(
+  breast_cancer_icd9,
+  lung_cancer_icd9,
+  prostate_cancer_icd9,
+  colorectal_cancer_icd9,
+  skin_cancer_icd9,
+  nh_lymphoma_icd9,
+  pancreatic_cancer_icd9,
+  kidney_cancer_icd9,
+  bladder_cancer_icd9,
+  oral_cancer_icd9,
+  uterus_cancer_icd9,
+  leukemia_icd9,
+  eso_cancer_icd9,
+  ovarian_cancer_icd9,
+  liver_cancer_icd9,
+  stomach_cancer_icd9,
+  myeloma_icd9,
+  secondary_cancer_icd9,
+  brain_cancer_icd9,
+  thyroid_cancer_icd9,
+  cervical_cancer_icd9,
+  mesothelioma_icd9,
+  testicular_cancer_icd9,
+  h_lymphoma_icd9,
+  larynx_cancer_icd9,
+  CUP_cancer_icd9
+)
+
+```
+
+```{r events_list}
+
+# list of diseases
+events <- c(
+  Cs(
+    breast_cancer,
+    lung_cancer,
+    prostate_cancer,
+    colorectal_cancer,
+    skin_cancer,
+    nh_lymphoma,
+    pancreatic_cancer,
+    kidney_cancer,
+    bladder_cancer,
+    oral_cancer,
+    uterus_cancer,
+    leukemia,
+    eso_cancer,
+    ovarian_cancer,
+    liver_cancer,
+    stomach_cancer,
+    myeloma,
+    secondary_cancer,
+    brain_cancer,
+    thyroid_cancer,
+    cervical_cancer,
+    mesothelioma,
+    testicular_cancer,
+    h_lymphoma,
+    larynx_cancer,
+    CUP_cancer
+  )
+)
+
+```
+
+```{r import_raw_data}
+
+# import main UKB dataset
+dat <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_may_21_2022.rds")
+
+```
+
+```{r cancer_registry}
+
+cancer_dat <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/ukb_cancer_register_data_may_17_2023.csv")
+
+# ICD 10 codes
+prefix <- "p40006_i"
+suffix <- seq(0,21)
+ICD10_all <- paste0(prefix, suffix)
+
+# ICD 9 codes
+prefix <- "p40013_i"
+suffix <- seq(0,14)
+ICD9_all <- paste0(prefix, suffix)
+
+# ICD 9/10 combined
+ICD_all <- c(ICD9_all, ICD10_all)
+
+# ICD 9/10 dates
+prefix <- "p40005_i"
+suffix <- seq(0,21)
+ICD_dates <- paste0(prefix, suffix)
+
+```
+
+```{r pivot}
+
+library(stringr)
+
+# Pivot the ICD10 diagnosis columns
+dat_long1 <- cancer_dat %>%
+  pivot_longer(cols = all_of(ICD10_all),
+               names_to = "index",
+               values_to = "icd10_diagnosis",
+               values_drop_na = FALSE) %>%
+  select(eid, index, icd10_diagnosis)
+
+# make empty values NA
+dat_long1$icd10_diagnosis[which(dat_long1$icd10_diagnosis == "")] <- NA
+
+# Remove "p40013_" from the col names to just get index
+dat_long1$index <- str_remove(dat_long1$index, "p40006_")
+
+# Pivot the ICD9 diagnosis columns
+dat_long2 <- cancer_dat %>%
+  pivot_longer(cols = all_of(ICD9_all),
+               names_to = "index",
+               values_to = "icd9_diagnosis",
+               values_drop_na = FALSE) %>%
+  select(eid, index, icd9_diagnosis)
+
+# Remove "p40013_" from the col names to just get index
+dat_long2$index <- str_remove(dat_long2$index, "p40013_")
+
+# Pivot the ICD diagnosis date columns
+dat_long3 <- cancer_dat %>%
+  pivot_longer(cols = all_of(ICD_dates),
+               names_to = "index",
+               values_to = "diagnosis_date",
+               values_drop_na = FALSE) %>%
+  select(eid, index, diagnosis_date)
+
+# Remove "p40013_" from the col names to just get index
+dat_long3$index <- str_remove(dat_long3$index, "p40005_")
+
+# merge 
+cancer_dat_long <- merge(
+  dat_long1, 
+  dat_long2, 
+  by = c("eid", "index"),
+  all.x = TRUE
+)
+
+cancer_dat_long <- merge(
+  cancer_dat_long, 
+  dat_long3, 
+  by = c("eid", "index"),
+  all.x = TRUE
+)
+
+```
+
+``` {r COD_prep}
+
+# import cause of death (COD) data. 
+# more info here: http://biobank.ndph.ox.ac.uk/showcase/showcase/docs/DeathLinkage.pdf.
+dat_COD <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/Data tables/death_cause_may_23_2023.csv")
+
+
+### prepare cause of death data
+
+### transform COD data from long format (with multiple rows per eid) 
+### to wide format (multiple columns and one row per eid)
+dat_COD <-
+    pivot_wider(dat_COD,
+                # any new value in "ins_index" or "arr_index" becomes a new column
+                names_from = c(ins_index,
+                               arr_index),
+                # populate new columns with corresponding value from COD column
+                values_from = cause_icd10) 
+
+# remove level variable (it's redundant to the arr_index information)
+dat_COD <- subset(dat_COD,
+                  select = -c(level))
+
+### the dataset now has two rows for each eid: 
+### instance index = 0 data are all in one row and instance = 1 are all on second
+### now we collapse the two rows for each eid into one row
+
+# prepare dataset
+dat_COD <- sapply(dat_COD, as.character) # data need to be character class for transpose function
+dat_COD[is.na(dat_COD)] <- "" # NA values will cause errors in the transpose
+dat_COD <- as.data.frame(dat_COD) # convert back to df
+
+# transpose dataset by merging all rows with a unique eid into one row
+dat_COD %>%
+    group_by(eid) %>%
+    summarise_all(
+        funs(trimws(paste(., collapse = "")))) -> dat_COD
+
+dat_COD[dat_COD == ""] <- NA # convert empty cells back to NA
+
+### replace column names
+
+# new column names
+prefix <- "cause_icd.0."
+suffix <- seq(0,14)
+ICD10_0 <- paste0(prefix, suffix)
+
+# old names to replace
+prefix <- "0_"
+suffix <- seq(0,14)
+replace1 <- paste0(prefix, suffix)
+
+# new column names
+prefix <- "cause_icd.1."
+suffix <- seq(0,9)
+ICD10_1 <- paste0(prefix, suffix)
+
+# old names to replace
+prefix <- "1_"
+suffix <- seq(0,9)
+replace2 <- paste0(prefix, suffix)
+
+# loop to replace instance = 0 column names
+for(j in seq_along(replace1)){
+  names(dat_COD)[names(dat_COD) == replace1[j]] <- ICD10_0[j]
+}
+
+# loop to replace instance = 1 column names
+for(j in seq_along(replace2)){
+  names(dat_COD)[names(dat_COD) == replace2[j]] <- ICD10_1[j] 
+}
+
+# reorder columns in ascending order
+col_order <- c("eid", ICD10_0, ICD10_1)
+dat_COD <- dat_COD[, col_order]
+
+```
+
+```{r mort_prep}
+
+# import mortality data
+mort <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/Data tables/death_may_23_2023.csv")
+
+
+### prepare death date data 
+
+# remove duplicate date of death record row for any participant (e.g., where "ins_index = 1"). 
+# date in ins_index = 1 shows the same date so it is redundant
+mort <- mort[which(mort$ins_index == '0'), ]
+
+# check how date is formatted for correct as.Date formatting
+head(mort$date_of_death) 
+
+# set as date
+mort$date_of_death <- as.Date(mort$date_of_death, 
+                              format = "%Y-%m-%d")
+
+# check for any formatting errors
+head(mort$date_of_death) 
+
+### merge date and cause of death data 
+# Note: some participants have a date of death but not cause
+mort <- merge(
+  mort,
+  dat_COD, 
+  by = "eid", 
+  all.x = TRUE
+) 
+```
+
+```{r cod_vars}
+
+### merge ICD data and mortality data
+dat <- merge(
+  dat, 
+  mort, 
+  by = "eid",
+  all = TRUE
+) 
+
+
+### create mortality event indicators by primary or secondary cause of death
+mort_ICD <- c(ICD10_0, ICD10_1)
+
+
+### Cause of death indicators
+
+for (i in seq_along(events)) {
+  
+  # make colname
+  mort_col <- paste0(events[i], "_mort_any")
+  
+  # code cause of death with ICD code in any of the primary or secondary positions
+  dat[mort_col] <- as.numeric(
+    rowSums(
+      sapply(dat[mort_ICD], "%in%", icd10_include[[i]]),
+      na.rm = TRUE) > 0)
+  
+  cat('completed', i, '/', length(events), '\r')
+
+}
+
+```
+
+``` {r event_and_date}
+
+# make recruitment center a factor
+dat$recruitment_centre <- factor(dat$recruitment_centre)
+
+# remove 1 participant with NA for recruitment centre and date
+dat <- dat[which(!is.na(dat$recruitment_centre)), ]
+
+### Event indicators and diagnosis dates
+for (i in seq_along(events)) {
+  
+  # set event column name
+  event_col <- paste0(events[i], "_event")
+  date_col <- paste0(events[i], "_date")
+
+  # subset hesin data to those who have a matching diagnosis
+  data <- cancer_dat_long %>%
+    filter(icd10_diagnosis %in% icd10_include[[i]] | icd9_diagnosis %in% icd9_include[[i]])
+  
+  # code date column as Date
+  data$diagnosis_date <- as.Date(data$diagnosis_date, format = "%Y-%m-%d")
+  
+  # Order the dataframe by eid and date
+  data <- data[order(data$eid, data$diagnosis_date), ]
+  
+  # Remove duplicates, keeping only the first occurrence (earliest date) for each eid
+  data <- data[!duplicated(data$eid), ]
+  
+  # combine icd10 and icd9 diagnosis columns
+  data <- data %>% 
+    unite("diagnosis", 
+          icd10_diagnosis:icd9_diagnosis, 
+          sep = "", 
+          remove = FALSE, 
+          na.rm = TRUE)
+  
+  
+  # subset to diagnosis and date columns
+  data <- data[c('eid', 'diagnosis_date', 'diagnosis')]
+  
+  # change column names
+  colnames(data) <- c('eid', date_col, 'diagnosis')
+  
+  # merge with data
+  dat <- merge(
+    dat,
+    data,
+    by = 'eid',
+    all.x = TRUE
+  )
+  
+  # code event indicator
+  dat[[event_col]] <- ifelse(is.na(dat$diagnosis), 0, 1)
+  # remove old column
+  dat <- dat[which(colnames(dat) != "diagnosis")]
+
+  cat(event_col, '\n')
+  cat("number of cases:", nrow(data))
+  print(table(dat[[event_col]]))
+  print(head(dat[[date_col]]))
+  flush.console()
+  
+  # progress
+  cat('completed', i, '/', length(events), '\r')
+}
+```
+
+```{r censoring}
+
+### Censoring dates 
+
+wales <- c(
+    # cardiff
+    "11003",
+    # wrexham
+    "11023",
+    # swansea
+    "11022"
+)
+
+scotland <- c(
+    # edinburgh
+    "11005", 
+    # glasgow
+    "11004"
+)
+
+# get all england recruitment centers 
+england <- levels(dat$recruitment_centre)[which(levels(dat$recruitment_centre) %nin% c(wales, scotland))]
+
+library(glue)
+
+for (event in events) {
+  
+  # set censor date column name
+  censor_col <- glue('{event}_censor_date')
+  # set event date column name
+  date_col <- glue('{event}_date')
+  # set event column name
+  event_col <- glue('{event}_event')
+  # set mortality cause of death column name
+  mort_col <- glue('{event}_mort_any')
+  # set disease survival time column name
+  survival_col <- glue('{event}_survival_time')
+  
+  # duplicate event date
+  dat[censor_col] <- dat[date_col]
+  
+  ### add censor date by country of recruitment
+  
+  # row indices
+  scotland_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% scotland)
+  wales_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% wales)
+  england_index <- which(is.na(dat[[censor_col]]) & dat$recruitment_centre %in% england)
+  
+  # Scotland
+  dat[[censor_col]][scotland_index] <- "2021-11-30"
+  # Wales
+  dat[[censor_col]][wales_index] <- "2020-12-31"
+  # England
+  dat[[censor_col]][england_index] <- "2020-12-31"
+  
+  # make date of death as the censoring date
+  # if participant is not a case, but died earlier than standard censoring date
+  index <- which(
+    !is.na(dat$date_of_death) & 
+      dat[[event_col]] == 0 &
+      dat$date_of_death < dat[[censor_col]]
+  )
+  # set as date of death
+  dat[[censor_col]][index] <- dat$date_of_death[index]
+  
+  ### augment event indicator with mortality information 
+
+  # index of rows where diagnosis event is 0, but mortality record shows the disease as a cause
+  index <- which(dat[[event_col]] == 0 & dat[[mort_col]] == 1)
+  cat(event, 'number of rows to add from death register:', length(index), '\n')
+  flush.console()
+  
+  # recode as diagnosis event = 1
+  dat[[event_col]][index] <- 1
+  
+  # make date of death as the censoring date for these participants
+  dat[[censor_col]][index] <- dat$date_of_death[index]
+  
+  ### survival time
+  dat[[survival_col]] <- as.numeric(dat[[censor_col]] - dat$recruitment_date)
+}
+
+```
+
+```{r prevalent_and_incident_dx}
+
+for (event in events) {
+  
+  # define column names
+  event_col <- glue("{event}_event")
+  prev_event <- glue("prevalent_{event}")
+  incident_event <- glue("incident_{event}")
+  censor_date <- glue("{event}_censor_date")
+
+  # define all participants with diagnosis before or equal to recruitment date
+  baseline_ncd <- which(dat[[censor_date]] <= dat$recruitment_date)
+  
+  # initialize prevalent diagnosis variable
+  dat[[prev_event]] <- 0
+  # code those with diagnosis before recruitment to 1
+  dat[[prev_event]][baseline_ncd] <- 1
+  
+  # class as factor
+  dat[[prev_event]] <- factor(dat[[prev_event]])
+  dat[[prev_event]] <- relevel(dat[[prev_event]], ref = "0")
+
+  # code incident events
+  dat[[incident_event]] <- ifelse(
+    # set prevalent cases to NA
+    dat[[prev_event]] == 1,
+    NA,
+    ifelse(
+      # in remaining, set those with event to 1
+      dat[[event_col]] == 1,
+      1,
+      0
+    )
+  )
+  
+}
+
+```
+
+```{r case_table}
+
+table <- data.frame(matrix(ncol = 5, nrow = length(events)))
+
+table[1] <- events
+
+for (k in seq_along(events)) {
+  prev_col <- glue('prevalent_{events[k]}')
+  incident_col <- glue('incident_{events[k]}')
+  table[k, 2] <- nrow(dat[which(dat[[prev_col]] == 0 & dat[[incident_col]] == 0), ])
+}
+
+for (k in seq_along(events)) {
+  prev_col <- glue('prevalent_{events[k]}')
+  incident_col <- glue('incident_{events[k]}')
+  table[k, 3] <- table(dat[[prev_col]])[2] + table(dat[[incident_col]])[2]
+}
+
+for (k in seq_along(events)) {
+  col <- glue('prevalent_{events[k]}')
+  table[k, 4] <- table(dat[[col]])[2]
+}
+
+for (k in seq_along(events)) {
+  col <- glue('incident_{events[k]}')
+  table[k, 5] <- table(dat[[col]])[2]
+}
+
+colnames(table) <- c('Outcome', 'Disease free', 'All cases', 'Prevalent cases', 'incident cases')
+
+print(table)
+write.csv(table, row.names = FALSE, "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_counts_july_05_2023.csv")
+```
+
+```{r save}
+
+# list of columns
+event_cols <- paste0(events, "_event")
+date_cols <- paste0(events, "_date")
+censor_cols <- paste0(events, "_censor_date")
+survival_cols <- paste0(events, "_survival_time")
+prev_cols <- paste0("prevalent_", events)
+incident_cols <- paste0("incident_", events)
+
+# all columns
+all_cols <- c(
+  "eid", 
+  event_cols, 
+  date_cols, 
+  censor_cols, 
+  survival_cols, 
+  prev_cols, 
+  incident_cols
+)
+
+# subset data
+dat_cancer <- dat[all_cols]
+
+# save
+save(dat_cancer, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_july_05_2023.RData")
+
+write.csv(dat_cancer, row.names = FALSE, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_july_05_2023.csv")
+```
+

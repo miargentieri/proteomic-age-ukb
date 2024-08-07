@@ -27,8 +27,4 @@ python bin/tune.py output/random_proteomic/ft_transformer/tuning/0.toml
 
 ## Contributing
 
-Details about how to contribute to the project.
-
-## License
-
-Information about the project's license.
+Code written and run by [@titoghose].

@@ -17,21 +17,21 @@ date <- Sys.Date()
 
 # load ICD-10 codings for major NCDs
 # source("gs://ukb-diverse-pops/proteomics/austina/data/health_outcomes/codes/icd10_codings.R")
-source("/Users/aargenti/Documents/Broad_UKB/code/icd9_codings.R")
+source(".../icd9_codings.R")
 
 # load ICD-9 codings for major NCDs
 # source("gs://ukb-diverse-pops/proteomics/austina/data/health_outcomes/codes/icd9_codings.R")
-source("/Users/aargenti/Documents/Broad_UKB/code/icd10_codings.R")
+source(".../icd10_codings.R")
 
 ```
 
 ```{r read_codes}
 
 # load read code conversion tables
-read_v2_icd9 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v2_icd9.csv')
-read_v3_icd9 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v3_icd9.csv')
-read_v2_icd10 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v2_icd10.csv')
-read_v3_icd10 <- read.csv('/Users/aargenti/Documents/Broad_UKB/code/read_v3_icd10.csv')
+read_v2_icd9 <- read.csv('.../read_v2_icd9.csv')
+read_v3_icd9 <- read.csv('.../read_v3_icd9.csv')
+read_v2_icd10 <- read.csv('.../read_v2_icd10.csv')
+read_v3_icd10 <- read.csv('.../read_v3_icd10.csv')
 
 # make empty list
 read_codes <- as.list(rep(1,length(icd10_include)))
@@ -85,8 +85,8 @@ events <- c(
 ```{r import_hesin}
 
 # import HES diagnoses
-hesin <- read.csv("/Users/aargenti/Documents/proteomic_age/data/hesin_may_23_2023.csv")
-hesin_diag <- read.csv("/Users/aargenti/Documents/proteomic_age/data/hesin_diag_may_23_2023.csv")
+hesin <- read.csv(".../hesin_may_23_2023.csv")
+hesin_diag <- read.csv(".../hesin_diag_may_23_2023.csv")
 
 # join by eid and ins_index
 hesin_table <- merge(
@@ -103,7 +103,7 @@ gc()
 ```{r import_gp_data}
 
 # import GP diagnoses
-gp_clinical <- read.csv("/Users/aargenti/Documents/proteomic_age/data/gp_clinical_june_14_2023.csv")
+gp_clinical <- read.csv(".../gp_clinical_june_14_2023.csv")
 
 colnames(gp_clinical)
 head(gp_clinical)
@@ -274,7 +274,7 @@ dx_codes <- list(
 
 ```{r import_interview_data, eval=FALSE}
 # import main UKB dataset
-dat_dx <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/2. First raw dataset from UKB/ukb42114.rds")
+dat_dx <- readRDS(".../ukb42114.rds")
 
 # non-cancer codes
 prefix <- "f.20002.0."
@@ -288,12 +288,12 @@ dat_dx$eid <- dat_dx$f.eid
 dat_dx <- dat_dx[c("eid", illness_all)]
 
 # save dataset with just dx data
-save(dat_dx, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/2. First raw dataset from UKB/interview_dx_data.RData")
+save(dat_dx, file = ".../interview_dx_data.RData")
 ```
 
 ``` {r code_baseline_dx_vars}
 
-load("/Users/aargenti/Documents/proteomic_age/data/interview_dx_data.RData")
+load(".../interview_dx_data.RData")
 
 library(Hmisc)
 library(glue)
@@ -333,15 +333,15 @@ dat_dx <- subset(
 )
 
 # save
-save(dat_dx, file = glue("/Users/aargenti/Documents/proteomic_age/data/baseline_dx_data_{date}.RData"))
+save(dat_dx, file = glue(".../baseline_dx_data_{date}.RData"))
 ```
 
 ```{r import_raw_data}
 
 # import main UKB dataset
-# dat <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_may_21_2022.rds")
+# dat <- readRDS(".../ukb_full_recoded_dataset_may_21_2022.rds")
 
-load("/Users/aargenti/Documents/proteomic_age/data/ukb_imputation_jul_25_2023.RData")
+load(".../ukb_imputation_jul_25_2023.RData")
 dat <- imp_data[[1]]
 ```
 
@@ -489,7 +489,7 @@ dat <- merge(
 
 # import cause of death (COD) data. 
 # more info here: http://biobank.ndph.ox.ac.uk/showcase/showcase/docs/DeathLinkage.pdf.
-dat_COD <- read.csv("/Users/aargenti/Documents/proteomic_age/data/death_cause_may_23_2023.csv")
+dat_COD <- read.csv(".../death_cause_may_23_2023.csv")
 
 
 ### prepare cause of death data
@@ -566,7 +566,7 @@ dat_COD <- dat_COD[, col_order]
 ```{r mort_prep}
 
 # import mortality data
-mort <- read.csv("/Users/aargenti/Documents/proteomic_age/data/death_may_23_2023.csv")
+mort <- read.csv(".../death_may_23_2023.csv")
 
 
 ### prepare death date data 
@@ -966,7 +966,7 @@ for (k in seq_along(events)) {
 colnames(table) <- c('Outcome', 'Disease free', 'All cases', 'Prevalent cases', 'incident cases')
 
 print(table)
-write.csv(table, row.names = FALSE, glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_counts_{date}.csv"))
+write.csv(table, row.names = FALSE, glue(.../incident_disease_data_counts_{date}.csv"))
 ```
 
 ```{r save}
@@ -995,8 +995,8 @@ all_cols <- c(
 dat_NCD <- dat[all_cols]
 
 # save
-save(dat_NCD, file = glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_{date}.RData"))
+save(dat_NCD, file = glue(".../incident_disease_data_{date}.RData"))
 
-write.csv(dat_NCD, row.names = FALSE, file = glue("/Users/aargenti/Documents/proteomic_age/data/incident_disease_data_{date}.csv"))
+write.csv(dat_NCD, row.names = FALSE, file = glue(".../incident_disease_data_{date}.csv"))
 ```
 

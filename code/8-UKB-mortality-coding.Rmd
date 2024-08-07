@@ -1,0 +1,81 @@
+## Coding UK Biobank All-Cause Mortality
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(results = 'hide')
+knitr::opts_chunk$set(eval =  FALSE)
+```
+
+``` {r mortality, results='hide'}
+library(readr)
+
+### import mortality data
+mort <- read.csv(".../UKB/Datasets/Data tables/death_may_23_2023.csv")
+
+### import dataset 
+dat <- readRDS(".../UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_jun_22_2023.rds")
+
+### prepare death date data 
+
+# remove duplicate date of death record row for any participant (e.g., where "ins_index = 1"). 
+# date in ins_index = 1 shows the same date so it is redundant
+mort <- mort[which(mort$ins_index == '0'), ]
+
+# check how date is formatted for correct as.Date formatting
+head(mort$date_of_death) 
+
+# set as date
+mort$date_of_death <- as.Date(mort$date_of_death, 
+                              format = "%Y-%m-%d")
+
+# check for any formatting errors
+head(mort$date_of_death) 
+
+# merge with full dataset
+mort <- merge(mort,
+              dat,
+              by = "eid",
+              all = TRUE,
+              sort = FALSE)
+
+### coding event indicator
+mort$ACM_event_indicator <- NA
+mort$ACM_event_indicator[which(!is.na(mort$date_of_death))] <- 1
+mort$ACM_event_indicator[which(is.na(mort$date_of_death))] <- 0 
+
+# censoring date
+mort$ACM_censor_date <- mort$date_of_death 
+
+# add in censor date to those who are still alive (death date = NA)
+
+scotland <- c(
+    # edinburgh
+    "11005", 
+    # glasgow
+    "11004"
+) 
+
+# Sept 30 2021 is the suggested censor date from UKB for England/Wales as of May 20, 2022
+mort$ACM_censor_date[which(is.na(mort$ACM_censor_date) & 
+                               mort$recruitment_centre %nin% scotland)] <- "2022-11-30" 
+
+# Oct 31 2021 is the suggested censor date from UKB for Scotland as of May 20, 2022
+mort$ACM_censor_date[which(is.na(mort$ACM_censor_date) & 
+                               mort$recruitment_centre %in% scotland)] <- "2022-11-30" 
+
+# create survival time variable (censoring date - recruitment date)
+mort$ACM_survival_time <- as.numeric(mort$ACM_censor_date - mort$recruitment_date)
+
+# select only mortality columns
+mort <- subset(mort, 
+               select = c("eid",
+                          "date_of_death",
+                          "ACM_censor_date",
+                          "ACM_survival_time",
+                          "ACM_event_indicator"))
+
+# save mortality dataset
+write.csv(mort, row.names = FALSE, file = ".../UKB/Analysis projects/Proteomics/data/ukb_ACM_mortality_jul_25_2023.csv")
+```

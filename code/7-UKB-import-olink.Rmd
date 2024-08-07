@@ -1,0 +1,251 @@
+
+```{r path}
+path <- "/Users/aargenti/Documents/proteomic_age/"
+```
+
+```{r import_table}
+library(tidyr)
+library(readr)
+library(dplyr)
+
+### import olink data
+olink <- read_delim("/Users/aargenti/Documents/proteomic_age/data/olink_data_long_oct_17_2023.txt",
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+# import protein id codings
+protein_ID_coding143 <- read_delim("/Users/aargenti/Documents/proteomic_age/data/protein_ID_coding143.tsv", 
+                                   delim = "\t", 
+                                   escape_double = FALSE,
+                                   trim_ws = TRUE)
+
+# check imported correctly
+head(olink)
+
+# check sample size 
+length(unique(olink$eid))
+```
+
+```{r longitudinal_olink_data}
+
+# duplicate
+olink_all_ins <- olink
+
+# rename protein cols to just abbreviation
+protein_ID_coding143$protein <- gsub("\\;.*","", protein_ID_coding143$meaning)
+
+# rename columns
+protein_ID_coding143$protein[which(protein_ID_coding143$protein == "HLA-DRA")] <- "HLA_DRA"
+protein_ID_coding143$protein[which(protein_ID_coding143$protein == "HLA-E")] <- "HLA_E"
+
+# rename
+olink_all_ins$protein_name <- protein_ID_coding143$protein[match(olink_all_ins$protein_id, protein_ID_coding143$coding)]
+
+```
+
+```{r import_granular_age}
+data <- read.csv("/Users/aargenti/Documents/proteomic_age/data/granular_age_july_23_2023.csv")
+
+# subset to participants with all 3 timepoints
+# data <- data[which(data$eid %in% unique_eid_values), ]
+
+# keep only desired cols
+data <- data[c('eid', 'age_granular', 'age_granular_ins2', 'age_granular_ins3')]
+
+# pivot to long format
+age_data <- data %>%
+  pivot_longer(
+    !eid,
+    names_to = "ins_index", 
+    values_to = "age"
+  )
+
+head(age_data)
+
+# replace values
+age_data$ins_index[which(age_data$ins_index == 'age_granular')] = 0
+age_data$ins_index[which(age_data$ins_index == 'age_granular_ins2')] = 2
+age_data$ins_index[which(age_data$ins_index == 'age_granular_ins3')] = 3
+
+head(age_data)
+
+# merge with olink longitudinal data
+long_age_olink <- merge(
+  olink_all_ins,
+  age_data,
+  by = c('eid', 'ins_index'),
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+# save
+write.csv(long_age_olink, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/olink_all_timepoints_october_17_2023.csv")
+
+
+```
+
+```{r prepare_olink_data}
+
+### prepare olink data
+
+# select only baseline (instance 0)
+olink <- olink[which(olink$ins_index == 0), ]
+
+# rename protein cols to just abbreviation
+protein_ID_coding143$protein <- gsub("\\;.*","", protein_ID_coding143$meaning)
+
+# new row for protein names
+olink2 <- olink
+olink2$protein_name <- protein_ID_coding143$protein[match(olink2$protein_id, protein_ID_coding143$coding)]
+
+# check - result should be "NEFL"
+unique(olink2$protein_name[which(olink2$protein_id == 1840)])
+
+# check - result should be "GFAP"
+unique(olink2$protein_name[which(olink2$protein_id == 1141)])
+
+# check - result should be "APOE"
+unique(olink2$protein_name[which(olink2$protein_id == 154)])
+
+# convert to wide format (one row per eid, all proteins unique column)
+olink_dat <- pivot_wider(
+    olink2,
+    id_cols = eid,
+    names_from = protein_name,
+    # populate new columns with corresponding value from COD column
+    values_from = result
+) 
+
+# rename columns
+colnames(olink_dat)[which(colnames(olink_dat) == "HLA-DRA")] <- "HLA_DRA"
+colnames(olink_dat)[which(colnames(olink_dat) == "HLA-E")] <- "HLA_E"
+colnames(olink_dat)[which(colnames(olink_dat) == "HLA-A")] <- "HLA_A"
+colnames(olink_dat)[which(colnames(olink_dat) == "ERVV-1")] <- "ERVV_1"
+
+
+# check summary 
+summary(olink_dat$NEFL)
+
+# check sample size
+length(unique(olink_dat$eid))
+
+```
+
+```{r olink_batch}
+# load plate information
+batch_info <- read.table("/Users/aargenti/Documents/proteomic_age/data/olink_batch_oct_30_2023.csv", sep=',', header = TRUE)
+
+# subset to plate at instance 0
+batch_info <- batch_info[c('eid', 'X30901.0.0')]
+colnames(batch_info) <- c('eid', 'olink_plate')
+
+# load batch information
+batches <- read.table("/Users/aargenti/Documents/proteomic_age/data/olink_batch_number.dat", header = TRUE)
+
+batch_info$olink_batch <- NA
+
+options(scipen = 999)
+for (k in unique(batches$PlateID)) {
+  batch_info$olink_batch[batch_info$olink_plate == k] <- batches$Batch[batches$PlateID == k]
+}
+
+# remove those without batch data
+batch_info <- batch_info[which(!is.na(batch_info$olink_batch)), ]
+
+# merge olink data
+olink_dat <- merge(
+  olink_dat,
+  batch_info,
+  by = "eid",
+  all.x = TRUE,
+  sort = FALSE
+)
+
+```
+
+```{r save}
+
+save(olink_dat, file = "/Users/aargenti/Documents/proteomic_age/data/olink_data_wide_oct_30_2023.RData")
+
+write.csv(olink_dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/olink_data_wide_oct_30_2023.csv")
+
+```
+
+```{r save_olink_names}
+
+olink_names <- colnames(olink_dat)
+olink_names <- olink_names[which(olink_names %nin% c('eid', 'olink_batch', 'olink_plate'))]
+
+write.table(olink_names, file = "/Users/aargenti/Documents/proteomic_age/data/olink_names_october_17_2023.csv", col.names = FALSE, row.names = FALSE)
+```
+
+```{r missing_plot}
+library(ggplot2)
+library(Hmisc)
+
+# subset data to proteins
+missdat <- olink_dat[-1]
+
+# optional - set to random subset
+missdat <- missdat[which(missdat$olink_batch %nin% c(0,7)), ]
+
+# remove uneeded columns
+missdat <- missdat[which(colnames(missdat) %nin% c('olink_plate', 'olink_batch'))]
+
+# make df of missing percentages
+missdf <- data.frame(matrix(ncol = 2, nrow = ncol(missdat)))
+colnames(missdf) <- c("Variable", "pct_miss")
+missdf$Variable <- colnames(missdat)
+missdf$pct_miss <- sapply(missdat, function(x) length(which(is.na(x)))/length(x))
+missdf$pct_miss <- missdf$pct_miss*100
+missdf <- missdf[order(missdf$pct_miss, decreasing = TRUE), ]
+var_order <- missdf$Variable
+missdf$Variable <- factor(missdf$Variable, levels = var_order)
+
+# subset to those with missing > 10%
+missdf2 <- missdf[which(missdf$pct_miss >= 10), ]
+
+# plot
+miss <- ggplot(missdf2, aes(x = pct_miss, y = Variable)) + 
+    geom_bar(position = "dodge", stat = "identity") +
+    # scale_fill_manual(values = pal) +
+    theme_classic() +
+    ylab("Proteins missing 10% or more") +
+    xlab("Percent missing") +
+    scale_x_continuous(expand = expansion(mult = c(0.02, 0.1)),
+                       limits = c(0,100), breaks = seq(0,100, by = 5)) +
+    scale_y_discrete(expand = expansion(mult = c(0.02, 0.01))) +
+    theme(
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"),
+        legend.position =  c(0.8,0.6),
+        legend.text = element_text( size = 8),
+        legend.title = element_text( size = 10),
+        legend.key.width = unit(0.4, "cm"),
+        legend.key.height = unit(0.4, "cm"))
+
+# save
+ggsave(miss, filename = paste0(path, "/output/olink_missing_percent_random_subset_october_18_2023.jpg"), width = 9, height = 11)
+
+ # identify variables with less than 80% missing
+dat_missing <- sapply(olink_dat, function(x){(length(x[which(is.na(x))])/length(x)) < 0.8})
+
+# none
+which(dat_missing == FALSE)
+
+# identify participants with more than 80% missing
+missingp80 <- which(rowMeans(is.na(olink_dat)) >= 0.8)
+length(missingp80)
+
+# identify participants with more than 40% missing
+missingp40 <- which(rowMeans(is.na(olink_dat)) >= 0.4)
+length(missingp40)
+
+# identify participants with more than 10% missing
+missingp20 <- which(rowMeans(is.na(olink_dat)) >= 0.1)
+length(missingp20)
+
+# get list of protein names with > 20% missing
+# missing_prots <- missdf2$protein
+
+```
+

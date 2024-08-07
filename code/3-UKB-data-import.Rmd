@@ -1,0 +1,2432 @@
+# Creating datasets by variable category.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load, results='hide'}
+
+# import raw UKB dataset
+dat <- readRDS(".../UKB/Datasets/2. First raw dataset from UKB/ukb42114.rds")
+
+library(Hmisc)
+library(dplyr)
+```
+
+```{r elf, results='hide'}
+
+### Early life factors
+elf <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1647.0.0,
+                   f.1677.0.0,
+                   f.1687.0.0,
+                   f.1697.0.0,
+                   f.1707.0.0,
+                   f.1767.0.0,
+                   f.1777.0.0,
+                   f.1787.0.0,
+                   f.20022.0.0,
+                   f.120.0.0
+               )
+           ))
+
+old_cols <- colnames(elf)
+
+elf <- 
+    rename(elf,
+           eid = f.eid,    
+           country_birth = f.1647.0.0,
+           breastfed = f.1677.0.0,
+           body_size_10yrs_old = f.1687.0.0,
+           height_10yrs_old = f.1697.0.0,
+           handedness = f.1707.0.0,
+           adopted = f.1767.0.0,
+           part_multiple_birth = f.1777.0.0,
+           maternal_smoking = f.1787.0.0,
+           birth_weight = f.20022.0.0,
+           birth_weight_known = f.120.0.0
+    )
+
+new_cols <- colnames(elf)
+column_key_elf <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r sle, results='hide'}
+
+### Adult stressful life events (SLE)
+sle <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.6145.0.0,
+                   f.6145.0.1,
+                   f.6145.0.2,
+                   f.6145.0.3,
+                   f.6145.0.4,
+                   f.6145.0.5
+               )
+           ))
+
+old_cols <- colnames(sle)
+
+sle <- 
+    rename(sle,
+           eid = f.eid,    
+           sle.0.0 = f.6145.0.0,
+           sle.0.1 = f.6145.0.1,
+           sle.0.2 = f.6145.0.2,
+           sle.0.3 = f.6145.0.3,
+           sle.0.4 = f.6145.0.4,
+           sle.0.5 = f.6145.0.5
+    )
+
+new_cols <- colnames(sle)
+column_key_sle <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r social, results='hide'}
+
+### Social support
+soc <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1031.0.0,
+                   f.6160.0.0,
+                   f.6160.0.1,
+                   f.6160.0.2,
+                   f.6160.0.3,
+                   f.6160.0.4,
+                   f.2110.0.0,
+                   f.2020.0.0
+               )
+           ))
+
+old_cols <- colnames(soc)
+
+soc <- 
+    rename(soc,
+           eid = f.eid,    
+           family_visit_freq = f.1031.0.0,
+           social_activity.0.0 = f.6160.0.0,
+           social_activity.0.1 = f.6160.0.1,
+           social_activity.0.2 = f.6160.0.2,
+           social_activity.0.3 = f.6160.0.3,
+           social_activity.0.4 = f.6160.0.4,
+           confide_freq = f.2110.0.0,
+           loneliness = f.2020.0.0
+    )
+
+new_cols <- colnames(soc)
+column_key_soc <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r socio_dem, results='hide'}
+
+### Sociodemographics
+socio_dem <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.670.0.0,
+                   f.680.0.0,
+                   f.6139.0.0,
+                   f.6139.0.1,
+                   f.6139.0.2,
+                   f.6140.0.0,
+                   f.6140.0.1,
+                   f.6140.0.2,
+                   f.699.0.0,
+                   f.709.0.0,
+                   f.6141.0.0,
+                   f.6141.0.1,
+                   f.6141.0.2,
+                   f.6141.0.3,
+                   f.6141.0.4,
+                   f.728.0.0,
+                   f.738.0.0,
+                   f.6138.0.0,
+                   f.6138.0.1,
+                   f.6138.0.2,
+                   f.6138.0.3,
+                   f.6138.0.4,
+                   f.6138.0.5,
+                   f.845.0.0,
+                   f.20119.0.0,
+                   f.796.0.0,
+                   f.6142.0.0,
+                   f.6142.0.1,
+                   f.6142.0.2,
+                   f.6142.0.3,
+                   f.6142.0.4,
+                   f.6142.0.5,
+                   f.6142.0.6,
+                   f.757.0.0,
+                   f.767.0.0,
+                   f.777.0.0,
+                   f.6143.0.0,
+                   f.6143.0.1,
+                   f.6143.0.2,
+                   f.6143.0.3,
+                   f.806.0.0,
+                   f.816.0.0,
+                   f.826.0.0,
+                   f.3426.0.0,
+                   f.4825.0.0,
+                   f.3659.0.0,
+                   f.21000.0.0,
+                   f.6146.0.0,
+                   f.6146.0.1,
+                   f.6146.0.2,
+                   f.4674.0.0,
+                   f.21022.0.0,
+                   f.34.0.0,
+                   f.52.0.0,
+                   f.31.0.0,
+                   f.22001.0.0,
+                   f.54.0.0,
+                   f.53.0.0
+               )
+           ))
+
+old_cols <- colnames(socio_dem)
+
+socio_dem <- 
+    rename(socio_dem,
+           eid = f.eid,    
+           accommodation_type = f.670.0.0,
+           own_or_rent = f.680.0.0,
+           gas_fuel_heat.0.0 = f.6139.0.0,
+           gas_fuel_heat.0.1 = f.6139.0.1,
+           gas_fuel_heat.0.2 = f.6139.0.2,
+           heating_type.0.0 = f.6140.0.0,
+           heating_type.0.1 = f.6140.0.1,
+           heating_type.0.2 = f.6140.0.2,
+           years_at_address = f.699.0.0,
+           hshld_number = f.709.0.0,
+           hshld_relations.0.0 = f.6141.0.0,
+           hshld_relations.0.1 = f.6141.0.1,
+           hshld_relations.0.2 = f.6141.0.2,
+           hshld_relations.0.3 = f.6141.0.3,
+           hshld_relations.0.4 = f.6141.0.4,
+           hshld_vehicles = f.728.0.0,
+           hshld_income = f.738.0.0,
+           education_years.0.0 = f.6138.0.0,
+           education_years.0.1 = f.6138.0.1,
+           education_years.0.2 = f.6138.0.2,
+           education_years.0.3 = f.6138.0.3,
+           education_years.0.4 = f.6138.0.4,
+           education_years.0.5 = f.6138.0.5,
+           education_age_complete = f.845.0.0,
+           employment_corrected = f.20119.0.0,
+           employment_distance = f.796.0.0,
+           employment.0.0 = f.6142.0.0,
+           employment.0.1 = f.6142.0.1,
+           employment.0.2 = f.6142.0.2,
+           employment.0.3 = f.6142.0.3,
+           employment.0.4 = f.6142.0.4,
+           employment.0.5 = f.6142.0.5,
+           employment.0.6 = f.6142.0.6,
+           employment_years = f.757.0.0,
+           employment_hours = f.767.0.0,
+           employment_travel_freq = f.777.0.0,
+           commute_transport.0.0 = f.6143.0.0,
+           commute_transport.0.1 = f.6143.0.1,
+           commute_transport.0.2 = f.6143.0.2,
+           commute_transport.0.3 = f.6143.0.3,
+           employment_standing = f.806.0.0, 
+           employment_heavy_manual =  f.816.0.0,
+           shift_work = f.826.0.0,
+           night_shift_work = f.3426.0.0,
+           noisy_workplace = f.4825.0.0,
+           immigration_year = f.3659.0.0,
+           ethnicity = f.21000.0.0,
+           public_assistance.0.0 = f.6146.0.0,
+           public_assistance.0.1 = f.6146.0.1,
+           public_assistance.0.2 = f.6146.0.2,
+           private_healthcare = f.4674.0.0,
+           recruitment_age = f.21022.0.0,
+           birth_year = f.34.0.0,
+           birth_month = f.52.0.0,
+           sex = f.31.0.0,
+           genetic_sex = f.22001.0.0,
+           recruitment_centre = f.54.0.0,
+           recruitment_date = f.53.0.0
+    )
+
+new_cols <- colnames(socio_dem)
+column_key_socio_dem <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r fam_health, results='hide'}
+
+### family health history
+fam_health <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20112.0.0,
+                   f.20112.0.1,
+                   f.20112.0.2,
+                   f.20112.0.3,
+                   f.20112.0.4,
+                   f.20112.0.5,
+                   f.20112.0.6,
+                   f.20113.0.0,
+                   f.20113.0.1,
+                   f.20113.0.2,
+                   f.20113.0.3,
+                   f.20113.0.4,
+                   f.20113.0.5,
+                   f.20114.0.0,
+                   f.20114.0.1,
+                   f.20114.0.2,
+                   f.20114.0.3,
+                   f.20114.0.4,
+                   f.20114.0.5,
+                   f.20114.0.6,
+                   f.20107.0.0,
+                   f.20107.0.1,
+                   f.20107.0.2,
+                   f.20107.0.3,
+                   f.20107.0.4,
+                   f.20107.0.5,
+                   f.20107.0.6,
+                   f.20107.0.7,
+                   f.20107.0.8,
+                   f.20107.0.9,
+                   f.20110.0.0,
+                   f.20110.0.1,
+                   f.20110.0.2,
+                   f.20110.0.3,
+                   f.20110.0.4,
+                   f.20110.0.5,
+                   f.20110.0.6,
+                   f.20110.0.7,
+                   f.20110.0.8,
+                   f.20110.0.9,
+                   f.20110.0.10,
+                   f.20111.0.0,
+                   f.20111.0.1,
+                   f.20111.0.2,
+                   f.20111.0.3,
+                   f.20111.0.4,
+                   f.20111.0.5,
+                   f.20111.0.6,
+                   f.20111.0.7,
+                   f.20111.0.8,
+                   f.20111.0.9,
+                   f.20111.0.10,
+                   f.20111.0.11,
+                   f.4501.0.0,
+                   f.1797.0.0,
+                   f.3912.0.0,
+                   f.2946.0.0,
+                   f.1807.0.0,
+                   f.1835.0.0,
+                   f.3942.0.0,
+                   f.1845.0.0,
+                   f.3526.0.0,
+                   f.1873.0.0,
+                   f.3972.0.0,
+                   f.1883.0.0,
+                   f.3982.0.0,
+                   f.5057.0.0
+               )
+           ))
+
+old_cols <- colnames(fam_health)
+
+fam_health <- 
+    rename(fam_health,
+           eid = f.eid,    
+           adopted_father_illness.0.0 = f.20112.0.0,
+           adopted_father_illness.0.1 = f.20112.0.1,
+           adopted_father_illness.0.2 = f.20112.0.2,
+           adopted_father_illness.0.3 = f.20112.0.3,
+           adopted_father_illness.0.4 = f.20112.0.4,
+           adopted_father_illness.0.5 = f.20112.0.5,
+           adopted_father_illness.0.6 = f.20112.0.6,
+           adopted_mother_illness.0.0 = f.20113.0.0,
+           adopted_mother_illness.0.1 = f.20113.0.1,
+           adopted_mother_illness.0.2 = f.20113.0.2,
+           adopted_mother_illness.0.3 = f.20113.0.3,
+           adopted_mother_illness.0.4 = f.20113.0.4,
+           adopted_mother_illness.0.5 = f.20113.0.5,
+           adopted_sibling_illness.0.0 = f.20114.0.0,
+           adopted_sibling_illness.0.1 = f.20114.0.1,
+           adopted_sibling_illness.0.2 = f.20114.0.2,
+           adopted_sibling_illness.0.3 = f.20114.0.3,
+           adopted_sibling_illness.0.4 = f.20114.0.4,
+           adopted_sibling_illness.0.5 = f.20114.0.5,
+           adopted_sibling_illness.0.6 = f.20114.0.6,
+           father_illness.0.0 = f.20107.0.0,
+           father_illness.0.1 = f.20107.0.1,
+           father_illness.0.2 = f.20107.0.2,
+           father_illness.0.3 = f.20107.0.3,
+           father_illness.0.4 = f.20107.0.4,
+           father_illness.0.5 = f.20107.0.5,
+           father_illness.0.6 = f.20107.0.6,
+           father_illness.0.7 = f.20107.0.7,
+           father_illness.0.8 = f.20107.0.8,
+           father_illness.0.9 = f.20107.0.9,
+           mother_illness.0.0 = f.20110.0.0,
+           mother_illness.0.1 = f.20110.0.1,
+           mother_illness.0.2 = f.20110.0.2,
+           mother_illness.0.3 = f.20110.0.3,
+           mother_illness.0.4 = f.20110.0.4,
+           mother_illness.0.5 = f.20110.0.5,
+           mother_illness.0.6 = f.20110.0.6,
+           mother_illness.0.7 = f.20110.0.7,
+           mother_illness.0.8 = f.20110.0.8,
+           mother_illness.0.9 = f.20110.0.9,
+           mother_illness.0.10 = f.20110.0.10,
+           sibling_illness.0.0 = f.20111.0.0,
+           sibling_illness.0.1 = f.20111.0.1,
+           sibling_illness.0.2 = f.20111.0.2,
+           sibling_illness.0.3 = f.20111.0.3,
+           sibling_illness.0.4 = f.20111.0.4,
+           sibling_illness.0.5 = f.20111.0.5,
+           sibling_illness.0.6 = f.20111.0.6,
+           sibling_illness.0.7 = f.20111.0.7,
+           sibling_illness.0.8 = f.20111.0.8,
+           sibling_illness.0.9 = f.20111.0.9,
+           sibling_illness.0.10 = f.20111.0.10,
+           sibling_illness.0.11 = f.20111.0.11,
+           death_close_family = f.4501.0.0,
+           father_alive = f.1797.0.0,
+           adopted_father_alive = f.3912.0.0,
+           father_age = f.2946.0.0,
+           father_age_death = f.1807.0.0,
+           mother_alive = f.1835.0.0,
+           adopted_mother_alive = f.3942.0.0,
+           mother_age = f.1845.0.0,
+           mother_age_death = f.3526.0.0,
+           number_brothers = f.1873.0.0,
+           number_adopted_brothers = f.3972.0.0,
+           number_sisters = f.1883.0.0,
+           number_adopted_sisters = f.3982.0.0,
+           number_older_siblings = f.5057.0.0
+    )
+
+new_cols <- colnames(fam_health)
+column_key_fam_health <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r med_cond, results='hide'}
+
+### medical conditions - excluded cancer and non-cancer illness codes
+med_cond <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.6150.0.0,
+                   f.6150.0.1,
+                   f.6150.0.2,
+                   f.6150.0.3,
+                   f.3894.0.0,
+                   f.3627.0.0,
+                   f.4056.0.0,
+                   f.2966.0.0,
+                   f.6152.0.0,
+                   f.6152.0.1,
+                   f.6152.0.2,
+                   f.6152.0.3,
+                   f.6152.0.4,
+                   f.4012.0.0,
+                   f.4022.0.0,
+                   f.3992.0.0,
+                   f.3786.0.0,
+                   f.3761.0.0,
+                   f.2443.0.0,
+                   f.4041.0.0,
+                   f.2976.0.0,
+                   f.2453.0.0,
+                   f.2463.0.0,
+                   f.6151.0.0,
+                   f.6151.0.1,
+                   f.6151.0.2,
+                   f.6151.0.3,
+                   f.6151.0.4,
+                   f.6151.0.5,
+                   f.6151.0.6,
+                   f.3005.0.0,
+                   f.2473.0.0,
+                   f.134.0.0,
+                   f.135.0.0,
+                   f.2207.0.0,
+                   f.2217.0.0,
+                   f.6147.0.0,
+                   f.6147.0.1,
+                   f.6147.0.2,
+                   f.6147.0.3,
+                   f.6147.0.4,
+                   f.6147.0.5,
+                   f.5843.0.0,
+                   f.5832.0.0,
+                   f.5610.0.0,
+                   f.5855.0.0,
+                   f.6205.0.0,
+                   f.5408.0.0,
+                   f.5877.0.0,
+                   f.5934.0.0,
+                   f.2227.0.0,
+                   f.6148.0.0,
+                   f.6148.0.1,
+                   f.6148.0.2,
+                   f.6148.0.3,
+                   f.6148.0.4,
+                   f.5890.0.0,
+                   f.6119.0.0,
+                   f.5419.0.0,
+                   f.5441.0.0,
+                   f.5912.0.0,
+                   f.5901.0.0,
+                   f.4689.0.0,
+                   f.5430.0.0,
+                   f.4700.0.0,
+                   f.5923.0.0,
+                   f.5945.0.0,
+                   f.6149.0.0,
+                   f.6149.0.1,
+                   f.6149.0.2,
+                   f.6149.0.3,
+                   f.6149.0.4,
+                   f.6149.0.5,
+                   f.2178.0.0,
+                   f.2188.0.0,
+                   f.2296.0.0,
+                   f.2306.0.0,
+                   f.2316.0.0,
+                   f.4717.0.0,
+                   f.4728.0.0,
+                   f.5452.0.0,
+                   f.5463.0.0,
+                   f.5474.0.0,
+                   f.5485.0.0,
+                   f.5496.0.0,
+                   f.5507.0.0,
+                   f.5518.0.0,
+                   f.5529.0.0,
+                   f.5540.0.0,
+                   f.6159.0.0,
+                   f.6159.0.1,
+                   f.6159.0.2,
+                   f.6159.0.3,
+                   f.6159.0.4,
+                   f.6159.0.5,
+                   f.6159.0.6,
+                   f.3799.0.0,
+                   f.4067.0.0,
+                   f.3404.0.0,
+                   f.3571.0.0,
+                   f.3741.0.0,
+                   f.3414.0.0,
+                   f.3773.0.0,
+                   f.2956.0.0,
+                   f.2335.0.0,
+                   f.3606.0.0,
+                   f.3616.0.0,
+                   f.3751.0.0,
+                   f.2415.0.0,
+                   f.2844.0.0,
+                   f.136.0.0,
+                   f.3079.0.0,
+                   f.2247.0.0,
+                   f.2257.0.0,
+                   f.3393.0.0,
+                   f.4792.0.0,
+                   f.4803.0.0,
+                   f.4814.0.0,
+                   f.4836.0.0,
+                   f.2345.0.0,
+                   f.2355.0.0,
+                   f.2365.0.0,
+                   f.3809.0.0
+               )
+           ))
+
+old_cols <- colnames(med_cond)
+
+med_cond <-
+    rename(med_cond,
+           eid = f.eid,
+           heart_diagnosis.0.0 = f.6150.0.0,
+           heart_diagnosis.0.1 = f.6150.0.1,
+           heart_diagnosis.0.2 = f.6150.0.2,
+           heart_diagnosis.0.3 = f.6150.0.3,
+           MI_diagnosis_age = f.3894.0.0,
+           angina_diagnosis_age = f.3627.0.0,
+           stroke_diagnosis_age = f.4056.0.0,
+           bp_diagnosis_age = f.2966.0.0,
+           other_diagnosis.0.0 = f.6152.0.0,
+           other_diagnosis.0.1 = f.6152.0.1,
+           other_diagnosis.0.2 = f.6152.0.2,
+           other_diagnosis.0.3 = f.6152.0.3,
+           other_diagnosis.0.4 = f.6152.0.4,
+           DVT_diagnosis_age = f.4012.0.0,
+           pulm_embolism_diagnosis_age = f.4022.0.0,
+           emphysema_diagnosis_age = f.3992.0.0,
+           asthma_diagnosis_age = f.3786.0.0,
+           rhinitis_diagnosis_age = f.3761.0.0,
+           diabetes_diagnosis = f.2443.0.0,
+           gest_diabetes_only = f.4041.0.0,
+           diabetes_diagnosis_age = f.2976.0.0,
+           cancer_diagnosis = f.2453.0.0,
+           fracture_last_5yrs = f.2463.0.0,
+           fracture_site.0.0 = f.6151.0.0,
+           fracture_site.0.1 = f.6151.0.1,
+           fracture_site.0.2 = f.6151.0.2,
+           fracture_site.0.3 = f.6151.0.3,
+           fracture_site.0.4 = f.6151.0.4,
+           fracture_site.0.5 = f.6151.0.5,
+           fracture_site.0.6 = f.6151.0.6,
+           fracture_fall = f.3005.0.0,
+           other_diagnosis = f.2473.0.0,
+           number_cancers = f.134.0.0,
+           number_illnesses = f.135.0.0,
+           glasses = f.2207.0.0,
+           glasses_age = f.2217.0.0,
+           glasses_reason.0.0 = f.6147.0.0,
+           glasses_reason.0.1 = f.6147.0.1,
+           glasses_reason.0.2 = f.6147.0.2,
+           glasses_reason.0.3 = f.6147.0.3,
+           glasses_reason.0.4 = f.6147.0.4,
+           glasses_reason.0.5 = f.6147.0.5,
+           myopia_eye = f.5843.0.0,
+           hypertropia_eye = f.5832.0.0,
+           presbyopia_eye = f.5610.0.0,
+           astigmatism_eye = f.5855.0.0,
+           strabismus_eye = f.6205.0.0,
+           amblyopia_eye = f.5408.0.0,
+           other_eye = f.5877.0.0,
+           other_serious_eye = f.5934.0.0,
+           other_eye_problems = f.2227.0.0,
+           eye_disorders.0.0 = f.6148.0.0,
+           eye_disorders.0.1 = f.6148.0.1,
+           eye_disorders.0.2 = f.6148.0.2,
+           eye_disorders.0.3 = f.6148.0.3,
+           eye_disorders.0.4 = f.6148.0.4,
+           diabetes_eye = f.5890.0.0,
+           glaucoma_eye = f.6119.0.0,
+           injury_eye = f.5419.0.0,
+           cataract_eye = f.5441.0.0,
+           macular_degeneration_eye = f.5912.0.0,
+           diabetes_eye_age = f.5901.0.0,
+           glaucoma_age = f.4689.0.0,
+           injury_eye_age = f.5430.0.0,
+           cataract_age = f.4700.0.0,
+           macular_degeneration_age = f.5923.0.0,
+           other_serious_eye_age = f.5945.0.0,
+           mouth_problems.0.0 = f.6149.0.0,
+           mouth_problems.0.1 = f.6149.0.1,
+           mouth_problems.0.2 = f.6149.0.2,
+           mouth_problems.0.3 = f.6149.0.3,
+           mouth_problems.0.4 = f.6149.0.4,
+           mouth_problems.0.5 = f.6149.0.5,
+           overall_health = f.2178.0.0,
+           chronic_illness = f.2188.0.0,
+           falls_last_1yr = f.2296.0.0,
+           weight_change_last_1yr = f.2306.0.0,
+           chest_weeze_last_1yr = f.2316.0.0,
+           shortness_breath = f.4717.0.0,
+           leg_pain_walking = f.4728.0.0,
+           leg_pain_standing = f.5452.0.0,
+           leg_pain_calves = f.5463.0.0,
+           leg_pain_walking_uphill = f.5474.0.0,
+           leg_pain_walking_normal = f.5485.0.0,
+           leg_pain_walking_disappears = f.5496.0.0,
+           leg_pain_walking_action = f.5507.0.0,
+           leg_pain_walking_standing = f.5518.0.0,
+           leg_artery_surgery = f.5529.0.0,
+           leg_surgery = f.5540.0.0,
+           pain_last_1month.0.0 = f.6159.0.0,
+           pain_last_1month.0.1 = f.6159.0.1,
+           pain_last_1month.0.2 = f.6159.0.2,
+           pain_last_1month.0.3 = f.6159.0.3,
+           pain_last_1month.0.4 = f.6159.0.4,
+           pain_last_1month.0.5 = f.6159.0.5,
+           pain_last_1month.0.6 = f.6159.0.6,
+           headaches_3months = f.3799.0.0,
+           facial_pain_3months = f.4067.0.0,
+           neck_pain_3months = f.3404.0.0,
+           back_pain_3months = f.3571.0.0,
+           stomach_pain_3months = f.3741.0.0,
+           hip_pain_3months = f.3414.0.0,
+           knee_pain_3months = f.3773.0.0,
+           general_pain_3months = f.2956.0.0,
+           chest_pain = f.2335.0.0,
+           chest_pain_walking_normal = f.3606.0.0,
+           chest_pain_ceases_still = f.3616.0.0,
+           chest_pain_walking_uphill = f.3751.0.0,
+           major_operations = f.2415.0.0,
+           other_operations = f.2844.0.0,
+           number_operations = f.136.0.0,
+           pace_maker = f.3079.0.0,
+           hearing_difficulty = f.2247.0.0,
+           hearing_difficulty_background = f.2257.0.0,
+           hearing_aid = f.3393.0.0,
+           cochlear_implant = f.4792.0.0,
+           tinnitus = f.4803.0.0,
+           tinnitus_severity = f.4814.0.0,
+           loud_music_exposure = f.4836.0.0,
+           bowel_cancer_screening = f.2345.0.0,
+           bowel_cancer_screening_recent = f.2355.0.0,
+           PSA_test = f.2365.0.0,
+           PSA_test_time_since = f.3809.0.0
+    )
+
+new_cols <- colnames(med_cond)
+column_key_med_cond <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r medications, results='hide'}
+
+### medications
+meds <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.6177.0.0,
+                   f.6177.0.1,
+                   f.6177.0.2,
+                   f.6153.0.0,
+                   f.6153.0.1,
+                   f.6153.0.2,
+                   f.6153.0.3,
+                   f.2492.0.0,
+                   f.6154.0.0,
+                   f.6154.0.1,
+                   f.6154.0.2,
+                   f.6154.0.3,
+                   f.6154.0.4,
+                   f.6154.0.5,
+                   f.6155.0.0,
+                   f.6155.0.1,
+                   f.6155.0.2,
+                   f.6155.0.3,
+                   f.6155.0.4,
+                   f.6155.0.5,
+                   f.6155.0.6,
+                   f.6179.0.0,
+                   f.6179.0.1,
+                   f.6179.0.2,
+                   f.6179.0.3,
+                   f.6179.0.4,
+                   f.6179.0.5,
+                   f.137.0.0
+               )
+           ))
+
+old_cols <- colnames(meds)
+
+meds <- 
+    rename(meds,
+           eid = f.eid,
+           meds.0.0 = f.6177.0.0,
+           meds.0.1 = f.6177.0.1,
+           meds.0.2 = f.6177.0.2,
+           meds_hormones.0.0 = f.6153.0.0,
+           meds_hormones.0.1 = f.6153.0.1,
+           meds_hormones.0.2 = f.6153.0.2,
+           meds_hormones.0.3 = f.6153.0.3,
+           other_meds = f.2492.0.0,
+           pain_meds.0.0 = f.6154.0.0,
+           pain_meds.0.1 = f.6154.0.1,
+           pain_meds.0.2 = f.6154.0.2,
+           pain_meds.0.3 = f.6154.0.3,
+           pain_meds.0.4 = f.6154.0.4,
+           pain_meds.0.5 = f.6154.0.5,
+           vitamins.0.0 = f.6155.0.0,
+           vitamins.0.1 = f.6155.0.1,
+           vitamins.0.2 = f.6155.0.2,
+           vitamins.0.3 = f.6155.0.3,
+           vitamins.0.4 = f.6155.0.4,
+           vitamins.0.5 = f.6155.0.5,
+           vitamins.0.6 = f.6155.0.6,
+           minerals.0.0 = f.6179.0.0,
+           minerals.0.1 = f.6179.0.1,
+           minerals.0.2 = f.6179.0.2,
+           minerals.0.3 = f.6179.0.3,
+           minerals.0.4 = f.6179.0.4,
+           minerals.0.5 = f.6179.0.5,
+           number_medications = f.137.0.0
+    )
+
+new_cols <- colnames(meds)
+column_key_meds <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r male_repro, results='hide'}
+
+### male reproduction
+male_repro <- 
+    subset(dat,
+           select = c(Cs(
+               f.eid,
+               f.2375.0.0,
+               f.2385.0.0,
+               f.2395.0.0,
+               f.2405.0.0
+           )))
+
+old_cols <- colnames(male_repro)
+
+male_repro <-
+    rename(male_repro,
+           eid = f.eid,
+           age_facial_hair = f.2375.0.0,
+           age_voice = f.2385.0.0,
+           balding = f.2395.0.0,
+           number_children = f.2405.0.0
+    )
+
+new_cols <- colnames(male_repro)
+column_key_male_repro <- as.data.frame(cbind(old_cols, new_cols))
+
+```                                      
+
+```{r female_repro, results='hide'}
+
+### female reproduction
+female_repro <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.2674.0.0,
+                   f.2684.0.0,
+                   f.2694.0.0,
+                   f.2704.0.0,
+                   f.2714.0.0,
+                   f.2724.0.0,
+                   f.3700.0.0,
+                   f.3710.0.0,
+                   f.3720.0.0,
+                   f.2734.0.0,
+                   f.2744.0.0,
+                   f.3872.0.0,
+                   f.2754.0.0,
+                   f.2764.0.0,
+                   f.2774.0.0,
+                   f.3829.0.0,
+                   f.3839.0.0,
+                   f.3849.0.0,
+                   f.2784.0.0,
+                   f.2794.0.0,
+                   f.2804.0.0,
+                   f.2814.0.0,
+                   f.3536.0.0,
+                   f.3546.0.0,
+                   f.3591.0.0,
+                   f.2824.0.0,
+                   f.2834.0.0,
+                   f.3882.0.0,
+                   f.3140.0.0
+               )
+           ))
+
+old_cols <- colnames(female_repro)
+
+female_repro <- 
+    rename(female_repro,
+           eid = f.eid,
+           mammogram = f.2674.0.0,
+           mammogram_years_since = f.2684.0.0,
+           cervical_smear = f.2694.0.0,
+           cervical_smear_years_since = f.2704.0.0,
+           menarche_age = f.2714.0.0,
+           menopause = f.2724.0.0,
+           period_time_since = f.3700.0.0,
+           menstrual_cycle_length = f.3710.0.0,
+           menstruating_today = f.3720.0.0,
+           number_births = f.2734.0.0,
+           first_child_birth_weight = f.2744.0.0,
+           birth_age = f.3872.0.0,
+           first_birth_age = f.2754.0.0,
+           last_birth_age = f.2764.0.0,
+           stillbirth = f.2774.0.0,
+           number_stillbirths = f.3829.0.0,
+           number_miscarriages = f.3839.0.0,
+           number_pregnancy_terminations = f.3849.0.0,
+           oral_contraceptive = f.2784.0.0,
+           oral_contraceptive_age_first = f.2794.0.0,
+           oral_contraceptive_age_last = f.2804.0.0,
+           HRT = f.2814.0.0,
+           HRT_age_first = f.3536.0.0,
+           HRT_age_last = f.3546.0.0,
+           hysterectomy = f.3591.0.0,
+           hysterectomy_age = f.2824.0.0,
+           bilateral_oophorectomy = f.2834.0.0,
+           bilateral_oophorectomy_age = f.3882.0.0,
+           pregnant = f.3140.0.0
+    )
+
+new_cols <- colnames(female_repro)
+column_key_female_repro <- as.data.frame(cbind(old_cols, new_cols))
+
+```   
+
+```{r mental_health, results='hide'}
+
+### mental health
+mental_health <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20126.0.0,
+                   f.20122.0.0,
+                   f.20124.0.0,
+                   f.20125.0.0,
+                   f.20123.0.0,
+                   f.20127.0.0,
+                   f.1920.0.0,
+                   f.1930.0.0,
+                   f.1940.0.0,
+                   f.1950.0.0,
+                   f.1960.0.0,
+                   f.1970.0.0,
+                   f.1980.0.0,
+                   f.1990.0.0,
+                   f.2000.0.0,
+                   f.2010.0.0,
+                   f.2030.0.0,
+                   f.2040.0.0,
+                   f.2050.0.0,
+                   f.2060.0.0,
+                   f.2070.0.0,
+                   f.2080.0.0,
+                   f.2090.0.0,
+                   f.2100.0.0,
+                   f.4598.0.0,
+                   f.4609.0.0,
+                   f.4620.0.0,
+                   f.4631.0.0,
+                   f.5375.0.0,
+                   f.5386.0.0,
+                   f.4642.0.0,
+                   f.4653.0.0,
+                   f.6156.0.0,
+                   f.6156.0.1,
+                   f.6156.0.2,
+                   f.6156.0.3,
+                   f.5663.0.0,
+                   f.5674.0.0
+               )
+           ))
+
+old_cols <- colnames(mental_health)
+
+mental_health <-
+    rename(mental_health,
+           eid = f.eid,
+           bipolar_MDD = f.20126.0.0,
+           bipolar = f.20122.0.0,
+           MDD_moderate = f.20124.0.0,
+           MDD_severe = f.20125.0.0,
+           MDD_single_ep = f.20123.0.0,
+           neuroticism = f.20127.0.0,
+           mood_swings = f.1920.0.0,
+           miserableness = f.1930.0.0,
+           irritability = f.1940.0.0,
+           sensitivity = f.1950.0.0,
+           fed_up_feelings = f.1960.0.0,
+           nervous = f.1970.0.0,
+           worrier = f.1980.0.0,
+           tense = f.1990.0.0,
+           worry_embarassment = f.2000.0.0,
+           nerves = f.2010.0.0,
+           guilty_feelings = f.2030.0.0,
+           risk_taking = f.2040.0.0,
+           depressed_mood_freq = f.2050.0.0,
+           unenthusiasm_freq = f.2060.0.0,
+           tenseness_freq = f.2070.0.0,
+           tiredness_freq = f.2080.0.0,
+           doctor_visit_mental_health = f.2090.0.0,
+           psychiatrist_visit_mental_health = f.2100.0.0,
+           depressed_whole_week = f.4598.0.0,
+           depression_duration = f.4609.0.0,
+           depression_episodes = f.4620.0.0,
+           unenthusiastic_whole_week = f.4631.0.0,
+           unenthusiastic_duration = f.5375.0.0,
+           unenthusiastic_episodes = f.5386.0.0,
+           manic = f.4642.0.0,
+           irritable = f.4653.0.0,
+           manic_symptoms.0.0 = f.6156.0.0,
+           manic_symptoms.0.1 = f.6156.0.1,
+           manic_symptoms.0.2 = f.6156.0.2,
+           manic_symptoms.0.3 = f.6156.0.3,
+           manic_duration = f.5663.0.0,
+           manic_episodes = f.5674.0.0
+    )
+
+new_cols <- colnames(mental_health)
+column_key_mental_health <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+
+```{r electronics, results='hide'}
+
+### electronics use
+electronics <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1110.0.0,
+                   f.1120.0.0,
+                   f.1130.0.0,
+                   f.1140.0.0,
+                   f.1150.0.0,
+                   f.2237.0.0
+               )
+           ))
+
+old_cols <- colnames(electronics)
+
+electronics <- 
+    rename(electronics,
+           eid = f.eid,
+           mobile_phone_duration = f.1110.0.0,
+           mobile_phone_weekly_usage = f.1120.0.0,
+           speakerphone = f.1130.0.0,
+           mobile_phone_2yrs = f.1140.0.0,
+           head_side_phone = f.1150.0.0,
+           computer_games = f.2237.0.0
+    )
+
+new_cols <- colnames(electronics)
+column_key_electronics <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+
+```{r sleep, results='hide'}
+
+### sleep
+sleep <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1160.0.0,
+                   f.1170.0.0,
+                   f.1180.0.0,
+                   f.1190.0.0,
+                   f.1200.0.0,
+                   f.1210.0.0,
+                   f.1220.0.0
+               )
+           ))
+
+old_cols <- colnames(sleep)
+
+sleep <- 
+    rename(sleep,
+           eid = f.eid,
+           sleep_hours = f.1160.0.0,
+           easy_wake = f.1170.0.0,
+           chronotype = f.1180.0.0,
+           nap = f.1190.0.0,
+           sleep_difficulty = f.1200.0.0,
+           snoring = f.1210.0.0,
+           narcolepsy = f.1220.0.0
+    )
+
+new_cols <- colnames(sleep)
+column_key_sleep <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r smoking, results='hide'}
+
+### smoking
+smok <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20160.0.0,
+                   f.20162.0.0,
+                   f.20161.0.0,
+                   f.20116.0.0,
+                   f.1239.0.0,
+                   f.1249.0.0,
+                   f.2644.0.0,
+                   f.3436.0.0,
+                   f.3446.0.0,
+                   f.5959.0.0,
+                   f.3456.0.0,
+                   f.6194.0.0,
+                   f.6183.0.0,
+                   f.3466.0.0,
+                   f.3506.0.0,
+                   f.6158.0.0,
+                   f.6158.0.1,
+                   f.6158.0.2,
+                   f.6158.0.3,
+                   f.2867.0.0,
+                   f.2877.0.0,
+                   f.2887.0.0,
+                   f.2897.0.0,
+                   f.2907.0.0,
+                   f.6157.0.0,
+                   f.6157.0.1,
+                   f.6157.0.2,
+                   f.6157.0.3,
+                   f.2926.0.0,
+                   f.1259.0.0,
+                   f.1269.0.0,
+                   f.1279.0.0
+               )
+           ))
+
+old_cols <- colnames(smok)
+
+smok <-
+    rename(smok,
+           eid = f.eid,
+           ever_smoked = f.20160.0.0,
+           pack_years_prop = f.20162.0.0,
+           pack_years = f.20161.0.0,
+           smoking_status = f.20116.0.0,
+           tobacco = f.1239.0.0,
+           past_tobacco = f.1249.0.0,
+           light_smoking = f.2644.0.0,
+           smoking_start_age_current = f.3436.0.0,
+           tobacco_type = f.3446.0.0,
+           previous_smoker = f.5959.0.0,
+           number_cigarettes = f.3456.0.0,
+           cigarettes_stop_age = f.6194.0.0,
+           previous_number_cigarettes = f.6183.0.0,
+           waking_smoke_time = f.3466.0.0,
+           smoking_10yrs = f.3506.0.0,
+           why_reduced_smoking.0.0 = f.6158.0.0,
+           why_reduced_smoking.0.1 = f.6158.0.1,
+           why_reduced_smoking.0.2 = f.6158.0.2,
+           why_reduced_smoking.0.3 = f.6158.0.3,
+           smoking_start_age_former = f.2867.0.0,
+           tobacco_type_previous = f.2877.0.0,
+           number_cigarettes_previous = f.2887.0.0,
+           smoking_stop_age = f.2897.0.0,
+           ever_stop_smoking_6months = f.2907.0.0,
+           why_stopped_smoking.0.0 = f.6157.0.0,
+           why_stopped_smoking.0.1 = f.6157.0.1,
+           why_stopped_smoking.0.2 = f.6157.0.2,
+           why_stopped_smoking.0.3 = f.6157.0.3,
+           number_quit_attempts = f.2926.0.0,
+           hshld_smokers = f.1259.0.0,
+           tobacco_exposure_home = f.1269.0.0,
+           tobacco_exposure_outside = f.1279.0.0
+    )
+
+new_cols <- colnames(smok)
+column_key_smoking <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r alcohol, results='hide'}
+
+### alcohol
+alcohol <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20117.0.0,
+                   f.1558.0.0,
+                   f.3731.0.0,
+                   f.4407.0.0,
+                   f.4418.0.0,
+                   f.4429.0.0,
+                   f.4440.0.0,
+                   f.4451.0.0,
+                   f.4462.0.0,
+                   f.1568.0.0,
+                   f.1578.0.0,
+                   f.1588.0.0,
+                   f.1598.0.0,
+                   f.1608.0.0,
+                   f.5364.0.0,
+                   f.1618.0.0,
+                   f.1628.0.0,
+                   f.2664.0.0,
+                   f.3859.0.0
+               )
+           ))
+
+old_cols <- colnames(alcohol)
+
+alcohol <-
+    rename(alcohol,
+           eid = f.eid,
+           alcohol_status = f.20117.0.0,
+           alcohol_freq = f.1558.0.0,
+           alcohol_former = f.3731.0.0,
+           red_wine_monthly = f.4407.0.0,
+           white_wine_monthly = f.4418.0.0,
+           beer_monthly = f.4429.0.0,
+           spirits_monthly = f.4440.0.0,
+           fortified_wine_monthly = f.4451.0.0,
+           other_alcohol_monthly = f.4462.0.0,
+           red_wine_weekly = f.1568.0.0,
+           white_wine_weekly = f.1578.0.0,
+           beer_weekly = f.1588.0.0,
+           spirits_weekly = f.1598.0.0,
+           fortified_wine_weekly = f.1608.0.0,
+           other_alcohol_weekly = f.5364.0.0,
+           alcohol_with_meals = f.1618.0.0,
+           alcohol_10yrs = f.1628.0.0,
+           reason_reducing_alcohol = f.2664.0.0,
+           reason_stopped_alcohol = f.3859.0.0
+    )
+
+new_cols <- colnames(alcohol)
+column_key_alcohol <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r diet, results='hide'}
+
+### diet
+diet <- 
+    subset(dat, 
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1289.0.0,
+                   f.1299.0.0,
+                   f.1309.0.0,
+                   f.1319.0.0,
+                   f.1329.0.0,
+                   f.1339.0.0,
+                   f.1349.0.0,
+                   f.1359.0.0,
+                   f.1369.0.0,
+                   f.1379.0.0,
+                   f.1389.0.0,
+                   f.3680.0.0,
+                   f.6144.0.0,
+                   f.6144.0.1,
+                   f.6144.0.2,
+                   f.6144.0.3,
+                   f.1408.0.0,
+                   f.1418.0.0,
+                   f.1428.0.0,
+                   f.2654.0.0,
+                   f.1438.0.0,
+                   f.1448.0.0,
+                   f.1458.0.0,
+                   f.1468.0.0,
+                   f.1478.0.0,
+                   f.1488.0.0,
+                   f.1508.0.0,
+                   f.1518.0.0,
+                   f.1528.0.0,
+                   f.1538.0.0,
+                   f.1548.0.0
+               )
+           ))
+
+old_cols <- colnames(diet)
+
+diet <-
+    rename(diet,
+           eid = f.eid,
+           cooked_veg = f.1289.0.0,
+           salad_or_raw_veg = f.1299.0.0,
+           fresh_fruit = f.1309.0.0,
+           dried_fruit = f.1319.0.0,
+           oily_fish = f.1329.0.0,
+           non_oily_fish = f.1339.0.0,
+           processed_meat = f.1349.0.0,
+           poultry = f.1359.0.0,
+           beef = f.1369.0.0,
+           lamb = f.1379.0.0,
+           pork = f.1389.0.0,
+           meat_age_last = f.3680.0.0,
+           never_eat0.0 = f.6144.0.0,
+           never_eat0.1 = f.6144.0.1,
+           never_eat0.2 = f.6144.0.2,
+           never_eat0.3 = f.6144.0.3,
+           cheese = f.1408.0.0,
+           milk_type = f.1418.0.0,
+           spread_type = f.1428.0.0,
+           spread_type_details = f.2654.0.0,
+           bread = f.1438.0.0,
+           bread_type = f.1448.0.0,
+           cereal = f.1458.0.0,
+           cereal_type = f.1468.0.0,
+           salt = f.1478.0.0,
+           tea = f.1488.0.0,
+           coffee_type = f.1508.0.0,
+           hot_drink_temp = f.1518.0.0,
+           water = f.1528.0.0,
+           diet_change_5yrs = f.1538.0.0,
+           diet_variation = f.1548.0.0
+    )
+
+new_cols <- colnames(diet)
+column_key_diet <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r sun, results='hide'}
+
+### sun
+sun <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.1050.0.0,
+                   f.1060.0.0,
+                   f.1717.0.0,
+                   f.1727.0.0,
+                   f.1737.0.0,
+                   f.1747.0.0,
+                   f.1757.0.0,
+                   f.2267.0.0,
+                   f.2277.0.0
+               )
+           ))
+
+old_cols <- colnames(sun)
+
+sun <-
+    rename(sun,
+           eid = f.eid,
+           summer_outdoors_time = f.1050.0.0,
+           winter_outdoors_time = f.1060.0.0,
+           skin_color = f.1717.0.0,
+           skin_tan_ease = f.1727.0.0,
+           childhood_sunburn_number = f.1737.0.0,
+           hair_color = f.1747.0.0,
+           facial_aging = f.1757.0.0,
+           sun_protection_use = f.2267.0.0,
+           solarium_freq = f.2277.0.0
+    )
+
+new_cols <- colnames(sun)
+column_key_sun <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r sex_hist, results='hide'}
+
+### sex history
+sex_hist <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.2129.0.0,
+                   f.2139.0.0,
+                   f.2149.0.0,
+                   f.2159.0.0,
+                   f.3669.0.0
+               )
+           ))
+
+old_cols <- colnames(sex_hist)
+
+sex_hist <-
+    rename(sex_hist,
+           eid = f.eid,
+           sex_questions_answered = f.2129.0.0,
+           sex_age_first = f.2139.0.0,
+           number_sex_partners = f.2149.0.0,
+           same_sex_intercourse = f.2159.0.0,
+           number_same_sex_partners = f.3669.0.0
+    )
+
+new_cols <- colnames(sex_hist)
+column_key_sex_hist <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r phys_activity, results='hide'}
+
+### physical activity
+phys_act <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.22035.0.0,
+                   f.22036.0.0,
+                   f.22032.0.0,
+                   f.22038.0.0,
+                   f.22039.0.0,
+                   f.22037.0.0,
+                   f.22033.0.0,
+                   f.22034.0.0,
+                   f.1100.0.0,
+                   f.2634.0.0,
+                   f.1021.0.0,
+                   f.894.0.0,
+                   f.3647.0.0,
+                   f.1001.0.0,
+                   f.914.0.0,
+                   f.874.0.0,
+                   f.981.0.0,
+                   f.2624.0.0,
+                   f.1011.0.0,
+                   f.3637.0.0,
+                   f.943.0.0,
+                   f.991.0.0,
+                   f.971.0.0,
+                   f.884.0.0,
+                   f.904.0.0,
+                   f.864.0.0,
+                   f.1090.0.0,
+                   f.1080.0.0,
+                   f.1070.0.0,
+                   f.6164.0.0,
+                   f.6164.0.1,
+                   f.6164.0.2,
+                   f.6164.0.3,
+                   f.6164.0.4,
+                   f.6162.0.0,
+                   f.6162.0.1,
+                   f.6162.0.2,
+                   f.6162.0.3,
+                   f.924.0.0
+               )
+           ))
+
+old_cols <- colnames(phys_act)
+
+phys_act <- 
+    rename(phys_act,
+           eid = f.eid,
+           above_activity_recommendation = f.22035.0.0,
+           above_activity_recommendation_incl_walk = f.22036.0.0,
+           IPAQ_activity_group = f.22032.0.0,
+           MET_mins_moderate_activty = f.22038.0.0,
+           MET_mins_vigorous_activty = f.22039.0.0,
+           MET_mins_walking = f.22037.0.0,
+           days_activity_sum = f.22033.0.0,
+           mins_activity_sum = f.22034.0.0,
+           fast_driving = f.1100.0.0,
+           heavy_DIY_duration = f.2634.0.0,
+           light_DIY_duration = f.1021.0.0,
+           moderate_activity_duration = f.894.0.0,
+           other_exercise_duration = f.3647.0.0,
+           strenuous_sports_duration = f.1001.0.0,
+           vigorous_activity_duration = f.914.0.0,
+           walks_duration = f.874.0.0,
+           pleasure_walks_duration = f.981.0.0,
+           heavy_DIY_freq_4wks = f.2624.0.0,
+           light_DIY_freq_4wks = f.1011.0.0,
+           other_exercise_freq_4wks = f.3637.0.0,
+           stair_climbing_freq_4wks = f.943.0.0,
+           strenuous_sports_freq_4wks = f.991.0.0,
+           pleasure_walks_freq_4wks = f.971.0.0,
+           moderate_activity_over_10mins_days = f.884.0.0,
+           vigorous_activity_over_10mins_days = f.904.0.0,
+           walked_over_10mins_days = f.864.0.0,
+           driving_time = f.1090.0.0,
+           computer_time = f.1080.0.0,
+           TV_time = f.1070.0.0,
+           physical_activity_type.0.0 = f.6164.0.0,
+           physical_activity_type.0.1 = f.6164.0.1,
+           physical_activity_type.0.2 = f.6164.0.2,
+           physical_activity_type.0.3 = f.6164.0.3,
+           physical_activity_type.0.4 = f.6164.0.4,
+           transport_type.0.0 = f.6162.0.0,
+           transport_type.0.1 = f.6162.0.1,
+           transport_type.0.2 = f.6162.0.2,
+           transport_type.0.3 = f.6162.0.3,
+           usual_walking_pace = f.924.0.0
+    )
+
+new_cols <- colnames(phys_act)
+column_key_phys_act <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r vision, results='hide'}
+
+### vision
+vision <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.5208.0.0,
+                   f.5201.0.0
+               )
+           ))
+
+old_cols <- colnames(vision)
+
+vision <-
+    rename(vision,
+           eid = f.eid,
+           visual_acuity_left = f.5208.0.0,
+           visual_acuity_right = f.5201.0.0
+    )
+
+new_cols <- colnames(vision)
+column_key_vision <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r hearing, results='hide'}
+
+### hearing
+hearing <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20019.0.0,
+                   f.20021.0.0
+               )
+           ))
+
+old_cols <- colnames(hearing)
+
+hearing <-
+    rename(hearing,
+           eid = f.eid,
+           speech_reception_threshold_left = f.20019.0.0,
+           speech_reception_threshold_right = f.20021.0.0
+    )
+
+new_cols <- colnames(hearing)
+column_key_hearing <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r blood_pressure, results='hide'}
+
+### blood pressure
+bp <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.4079.0.0,
+                   f.4079.0.1,
+                   f.94.0.0,
+                   f.4080.0.0,
+                   f.4080.0.1,
+                   f.93.0.0,
+                   f.95.0.0,
+                   f.102.0.0,
+                   f.102.0.1
+               )
+           ))
+
+old_cols <- colnames(bp)
+
+bp <- 
+    rename(bp,
+           eid = f.eid,
+           diastolic_bp1 = f.4079.0.0,
+           diastolic_bp2 = f.4079.0.1,
+           diastolic_bp_manual = f.94.0.0,
+           systolic_bp1 = f.4080.0.0,
+           systolic_bp2 = f.4080.0.1,
+           systolic_bp_manual = f.93.0.0,
+           pulse_rate1 = f.102.0.0,
+           pulse_rate2 = f.102.0.1,
+           pulse_rate_manual = f.95.0.0
+    )
+
+new_cols <- colnames(bp)
+column_key_bp <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r art_stiff, results='hide'}
+
+### arterial stiffness
+a_stiff <-
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.4199.0.0,
+                   f.4198.0.0,
+                   f.4200.0.0,
+                   f.4194.0.0,
+                   f.21021.0.0,
+                   f.4196.0.0,
+                   f.4195.0.0
+               )
+           ))
+
+old_cols <- colnames(a_stiff)
+
+a_stiff <-
+    rename(a_stiff,
+           eid = f.eid,
+           pulse_wave_notch_position = f.4199.0.0,
+           pulse_wave_peak_position = f.4198.0.0,
+           pulse_wave_shoulder_position = f.4200.0.0,
+           pulse_rate_a_stiff = f.4194.0.0,
+           pulse_wave_arterial_stiffness_index = f.21021.0.0,
+           pulse_wave_peak_to_peak_time = f.4196.0.0,
+           pulse_wave_reflection_index = f.4195.0.0
+    )
+
+new_cols <- colnames(a_stiff)
+column_key_a_stiff <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r anthro, results='hide'}
+
+### anthropometrics
+anthro <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.48.0.0,
+                   f.21002.0.0,
+                   f.21001.0.0,
+                   f.49.0.0,
+                   f.50.0.0,
+                   f.51.0.0,
+                   f.20015.0.0,
+                   f.3077.0.0,
+                   f.3160.0.0,
+                   f.46.0.0,
+                   f.47.0.0,
+                   f.23098.0.0,
+                   f.23104.0.0,
+                   f.23113.0.0,
+                   f.23118.0.0,
+                   f.23114.0.0,
+                   f.23123.0.0,
+                   f.23119.0.0,
+                   f.23124.0.0,
+                   f.23120.0.0,
+                   f.23121.0.0,
+                   f.23125.0.0,
+                   f.23126.0.0,
+                   f.23122.0.0,
+                   f.23127.0.0,
+                   f.23128.0.0,
+                   f.23129.0.0,
+                   f.23130.0.0,
+                   f.23099.0.0,
+                   f.23100.0.0,
+                   f.23101.0.0,
+                   f.23102.0.0,
+                   f.23115.0.0,
+                   f.23111.0.0,
+                   f.23116.0.0,
+                   f.23112.0.0,
+                   f.23117.0.0,
+                   f.23106.0.0,
+                   f.23110.0.0,
+                   f.23109.0.0,
+                   f.23108.0.0,
+                   f.23107.0.0,
+                   f.6218.0.0,
+                   f.6222.0.0,
+                   f.6221.0.0,
+                   f.6220.0.0,
+                   f.6219.0.0
+               )
+           ))
+
+old_cols <- colnames(anthro)
+
+anthro <-
+    rename(anthro,
+           eid = f.eid,
+           waist_circumference = f.48.0.0,
+           weight = f.21002.0.0,
+           BMI = f.21001.0.0,
+           hip_circumference = f.49.0.0,
+           standing_height = f.50.0.0,
+           seated_height = f.51.0.0,
+           sitting_height = f.20015.0.0,
+           seating_box_height = f.3077.0.0,
+           weight_manual = f.3160.0.0,
+           hand_grip_strenght_left = f.46.0.0,
+           hand_grip_strenght_right = f.47.0.0,
+           weight_impedance = f.23098.0.0,
+           BMI_impedance = f.23104.0.0,
+           leg_fat_free_mass_right = f.23113.0.0,
+           leg_predicted_mass_left = f.23118.0.0,
+           leg_predicted_mass_right = f.23114.0.0,
+           arm_fat_percentage_left = f.23123.0.0,
+           arm_fat_percentage_right = f.23119.0.0,
+           arm_fat_mass_left = f.23124.0.0,
+           arm_fat_mass_right = f.23120.0.0,
+           arm_fat_free_mass_right = f.23121.0.0,
+           arm_fat_free_mass_left = f.23125.0.0,
+           arm_predicted_mass_left = f.23126.0.0,
+           arm_predicted_mass_right = f.23122.0.0,
+           trunk_fat_percentage = f.23127.0.0,
+           trunk_fat_mass = f.23128.0.0,
+           trunk_fat_free_mass = f.23129.0.0,
+           trunk_predicted_mass = f.23130.0.0,
+           body_fat_percent = f.23099.0.0,
+           whole_body_fat_mass = f.23100.0.0,
+           whole_body_fat_free_mass = f.23101.0.0,
+           whole_body_water_mass = f.23102.0.0,
+           leg_fat_percentage_left = f.23115.0.0,
+           leg_fat_percentage_right = f.23111.0.0,
+           leg_fat_mass_left = f.23116.0.0,
+           leg_fat_mass_right = f.23112.0.0,
+           leg_fat_free_mass_left = f.23117.0.0,
+           whole_body_impedance = f.23106.0.0,
+           arm_left_impedance = f.23110.0.0,
+           arm_right_impedance = f.23109.0.0,
+           leg_left_impedance = f.23108.0.0,
+           leg_right_impedance = f.23107.0.0,
+           whole_body_impedance_manual = f.6218.0.0,
+           arm_left_impedance_manual = f.6222.0.0,
+           arm_right_impedance_manual = f.6221.0.0,
+           leg_left_impedance_manual = f.6220.0.0,
+           leg_right_impedance_manual = f.6219.0.0
+    )
+
+new_cols <- colnames(anthro)
+column_key_anthro <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r spiro, results='hide'}
+
+### spirometry (lung function)
+spiro <- 
+    subset(dat, 
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20031.0.0,
+                   f.20031.0.1,
+                   f.20031.0.2,
+                   f.3061.0.0,
+                   f.3061.0.1,
+                   f.3061.0.2,
+                   f.3137.0.0,
+                   f.20255.0.0,
+                   f.3065.0.0,
+                   f.3065.0.1,
+                   f.3065.0.2,
+                   f.3059.0.0,
+                   f.3059.0.1,
+                   f.3059.0.2,
+                   f.3066.0.0,
+                   f.3066.0.1,
+                   f.3066.0.2,
+                   f.3062.0.0,
+                   f.3062.0.1,
+                   f.3062.0.2,
+                   f.20151.0.0,
+                   f.20257.0.0,
+                   f.3063.0.0,
+                   f.3063.0.1,
+                   f.3063.0.2,
+                   f.20150.0.0,
+                   f.20153.0.0,
+                   f.20154.0.0,
+                   f.20256.0.0,
+                   f.20258.0.0,
+                   f.3064.0.0,
+                   f.3064.0.1,
+                   f.3064.0.2
+               )
+           ))
+
+old_cols <- colnames(spiro)
+
+spiro <-
+    rename(spiro,
+           eid = f.eid,
+           blow_acceptability_text.0.0 = f.20031.0.0,
+           blow_acceptability_text.0.1 = f.20031.0.1,
+           blow_acceptability_text.0.2 = f.20031.0.2,
+           blow_acceptability.0.0 = f.3061.0.0,
+           blow_acceptability.0.1 = f.3061.0.1,
+           blow_acceptability.0.2 = f.3061.0.2,
+           number_spirometry_measurements = f.3137.0.0,
+           spirometry_QC = f.20255.0.0,
+           blow_ordering.0.0 = f.3065.0.0,
+           blow_ordering.0.1 = f.3065.0.1,
+           blow_ordering.0.2 = f.3065.0.2,
+           blow_result_ranking.0.0 = f.3059.0.0,
+           blow_result_ranking.0.1 = f.3059.0.1,
+           blow_result_ranking.0.2 = f.3059.0.2,
+           blow_data_points.0.0 = f.3066.0.0,
+           blow_data_points.0.1 = f.3066.0.1,
+           blow_data_points.0.2 = f.3066.0.2,
+           FVC.0.0 = f.3062.0.0,
+           FVC.0.1 = f.3062.0.1,
+           FVC.0.2 = f.3062.0.2,
+           FVC_best = f.20151.0.0,
+           FVC_z_score = f.20257.0.0,
+           FEV1.0.0 = f.3063.0.0,
+           FEV1.0.1 = f.3063.0.1,
+           FEV1.0.2 = f.3063.0.2,
+           FEV1_best = f.20150.0.0,
+           FEV1_predicted = f.20153.0.0,
+           FEV1_predicted_percentage = f.20154.0.0,
+           FEV1_z_score = f.20256.0.0,
+           FEV1_FVC_ratio_z_score = f.20258.0.0,
+           peak_expiratory_flow.0.0 = f.3064.0.0,
+           peak_expiratory_flow.0.1 = f.3064.0.1,
+           peak_expiratory_flow.0.2 = f.3064.0.2
+    )
+
+new_cols <- colnames(spiro)
+column_key_spiro <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r bmd, results='hide'}
+
+### heel bone mineral density
+bmd <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.3082.0.0,
+                   f.3081.0.0,
+                   f.3146.0.0,
+                   f.3143.0.0,
+                   f.3144.0.0,
+                   f.3147.0.0,
+                   f.3148.0.0,
+                   f.78.0.0,
+                   f.3086.0.0,
+                   f.3085.0.0,
+                   f.3083.0.0,
+                   f.3084.0.0,
+                   f.77.0.0,
+                   f.4093.0.0,
+                   f.4096.0.0,
+                   f.4100.0.0,
+                   f.4119.0.0,
+                   f.4103.0.0,
+                   f.4122.0.0,
+                   f.4101.0.0,
+                   f.4120.0.0,
+                   f.4104.0.0,
+                   f.4123.0.0,
+                   f.4105.0.0,
+                   f.4124.0.0,
+                   f.4106.0.0,
+                   f.4125.0.0,
+                   f.4142.0.0,
+                   f.4147.0.0,
+                   f.4141.0.0,
+                   f.4146.0.0,
+                   f.4139.0.0,
+                   f.4144.0.0,
+                   f.4140.0.0,
+                   f.4145.0.0,
+                   f.4138.0.0,
+                   f.4143.0.0
+               )
+           ))
+
+old_cols <- colnames(bmd)
+
+bmd <- 
+    rename(bmd,
+           eid = f.eid,
+           fractured_heel = f.3082.0.0,
+           bone_density_measure_foot = f.3081.0.0,
+           heel_sound_speed = f.3146.0.0,
+           ankle_spacing_width = f.3143.0.0,
+           heel_broadband_attenuation = f.3144.0.0,
+           heel_QUI = f.3147.0.0,
+           heel_bone_mineral_density = f.3148.0.0,
+           heel_bone_mineral_density_t_score = f.78.0.0,
+           heel_sound_speed_manual = f.3086.0.0,
+           heel_broadband_attenuation_manual = f.3085.0.0,
+           heel_QUI_manual = f.3083.0.0,
+           heel_bone_mineral_density_manual = f.3084.0.0,
+           heel_bone_ultrasound_t_score_manual = f.77.0.0,
+           fractured_heel_left = f.4093.0.0,
+           fractured_heel_right = f.4096.0.0,
+           ankle_spacing_width_left = f.4100.0.0,
+           ankle_spacing_width_right = f.4119.0.0,
+           heel_sound_speed_left = f.4103.0.0,
+           heel_sound_speed_right = f.4122.0.0,
+           heel_broadband_attenuation_left = f.4101.0.0,
+           heel_broadband_attenuation_right = f.4120.0.0,
+           heel_QUI_left = f.4104.0.0,
+           heel_QUI_right = f.4123.0.0,
+           heel_bone_mineral_density_left = f.4105.0.0,
+           heel_bone_mineral_density_right = f.4124.0.0,
+           heel_bone_mineral_density_t_score_left = f.4106.0.0,
+           heel_bone_mineral_density_t_score_right = f.4125.0.0,
+           heel_sound_speed_manual_left = f.4142.0.0,
+           heel_sound_speed_manual_right = f.4147.0.0,
+           heel_broadband_attenuation_manual_left = f.4141.0.0,
+           heel_broadband_attenuation_manual_right = f.4146.0.0,
+           heel_QUI_manual_left = f.4139.0.0,
+           heel_QUI_manual_right = f.4144.0.0,
+           heel_bone_mineral_density_manual_left = f.4140.0.0,
+           heel_bone_mineral_density_manual_right = f.4145.0.0,
+           heel_bone_mineral_density_t_score_manual_left = f.4138.0.0,
+           heel_bone_mineral_density_t_score_manual_right = f.4143.0.0
+    )
+
+new_cols <- colnames(bmd)
+column_key_bmd <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r imd, results='hide'}
+
+### indices of material deprivation + townsend deprivation index
+imd <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.26433.0.0,
+                   f.26422.0.0,
+                   f.26425.0.0,
+                   f.26416.0.0,
+                   f.26434.0.0,
+                   f.26414.0.0,
+                   f.26431.0.0,
+                   f.26421.0.0,
+                   f.26412.0.0,
+                   f.26419.0.0,
+                   f.26413.0.0,
+                   f.26430.0.0,
+                   f.26420.0.0,
+                   f.26415.0.0,
+                   f.26432.0.0,
+                   f.26423.0.0,
+                   f.26411.0.0,
+                   f.26428.0.0,
+                   f.26418.0.0,
+                   f.26410.0.0,
+                   f.26427.0.0,
+                   f.26426.0.0,
+                   f.26417.0.0,
+                   f.26424.0.0,
+                   f.189.0.0
+               )
+           ))
+
+old_cols <- colnames(imd)
+
+imd <- 
+    rename(imd,
+           eid = f.eid,
+           IMD_services_Scotland = f.26433.0.0,
+           IMD_services_Wales = f.26422.0.0,
+           IMD_community_safety_Wales = f.26425.0.0,
+           IMD_crime_England = f.26416.0.0,
+           IMD_crime_Scotland = f.26434.0.0,
+           IMD_education_England = f.26414.0.0,
+           IMD_education_Scotland = f.26431.0.0,
+           IMD_education_Wales = f.26421.0.0,
+           IMD_employment_England = f.26412.0.0,
+           IMD_employment_Wales = f.26419.0.0,
+           IMD_health_England = f.26413.0.0,
+           IMD_health_Scotland = f.26430.0.0,
+           IMD_health_Wales = f.26420.0.0,
+           IMD_housing_England = f.26415.0.0,
+           IMD_housing_Scotland = f.26432.0.0,
+           IMD_housing_Wales = f.26423.0.0,
+           IMD_income_England = f.26411.0.0,
+           IMD_income_Scotland = f.26428.0.0,
+           IMD_income_Wales = f.26418.0.0,
+           IMD_total_England = f.26410.0.0,
+           IMD_total_Scotland = f.26427.0.0,
+           IMD_total_Wales = f.26426.0.0,
+           IMD_living_environ_England = f.26417.0.0,
+           IMD_phsyical_environ_Wales = f.26424.0.0,
+           townsend_deprivation_index = f.189.0.0
+    )
+
+new_cols <- colnames(imd)
+column_key_imd <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r blood, results='hide'}
+
+### blood biomarkers
+blood <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.30620.0.0,
+                   f.30600.0.0,
+                   f.30610.0.0,
+                   f.30630.0.0,
+                   f.30640.0.0,
+                   f.30650.0.0,
+                   f.30710.0.0,
+                   f.30680.0.0,
+                   f.30690.0.0,
+                   f.30700.0.0,
+                   f.30720.0.0,
+                   f.30660.0.0,
+                   f.30730.0.0,
+                   f.30740.0.0,
+                   f.30750.0.0,
+                   f.30760.0.0,
+                   f.30770.0.0,
+                   f.30780.0.0,
+                   f.30790.0.0,
+                   f.30800.0.0,
+                   f.30810.0.0,
+                   f.30820.0.0,
+                   f.30830.0.0,
+                   f.30850.0.0,
+                   f.30840.0.0,
+                   f.30860.0.0,
+                   f.30870.0.0,
+                   f.30880.0.0,
+                   f.30670.0.0,
+                   f.30890.0.0
+               )
+           ))
+
+old_cols <- colnames(blood)
+
+blood <- 
+    rename(blood,
+           eid = f.eid,
+           alanine_aminotransferase = f.30620.0.0,
+           albumin = f.30600.0.0,
+           alkaline_phosphatase = f.30610.0.0,
+           apolipoprotein_A = f.30630.0.0,
+           apolipoprotein_B = f.30640.0.0,
+           aspartate_aminotransferase = f.30650.0.0,
+           C_reactive_protein = f.30710.0.0,
+           calcium = f.30680.0.0,
+           cholesterol = f.30690.0.0,
+           creatinine = f.30700.0.0,
+           cystatin_C = f.30720.0.0,
+           direct_bilirubin = f.30660.0.0,
+           gamma_glutamyltransferase = f.30730.0.0,
+           glucose = f.30740.0.0,
+           hbA1c = f.30750.0.0,
+           HDL_cholesterol = f.30760.0.0,
+           IGF1 = f.30770.0.0,
+           LDL_direct = f.30780.0.0,
+           lipoprotein_A = f.30790.0.0,
+           oestradiol = f.30800.0.0,
+           phosphate = f.30810.0.0,
+           rheumatoid_factor = f.30820.0.0,
+           SHBG = f.30830.0.0,
+           testosterone = f.30850.0.0,
+           total_bilirubin = f.30840.0.0,
+           total_protein = f.30860.0.0,
+           triglycerides = f.30870.0.0,
+           urate = f.30880.0.0,
+           urea = f.30670.0.0,
+           vitamin_D = f.30890.0.0
+    )
+
+new_cols <- colnames(blood)
+column_key_blood <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r blood_count, results='hide'}
+
+### blood counts
+blood_count <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.30160.0.0,
+                   f.30220.0.0,
+                   f.30150.0.0,
+                   f.30210.0.0,
+                   f.30030.0.0,
+                   f.30020.0.0,
+                   f.30300.0.0,
+                   f.30290.0.0,
+                   f.30280.0.0,
+                   f.30120.0.0,
+                   f.30180.0.0,
+                   f.30050.0.0,
+                   f.30060.0.0,
+                   f.30040.0.0,
+                   f.30100.0.0,
+                   f.30260.0.0,
+                   f.30270.0.0,
+                   f.30130.0.0,
+                   f.30190.0.0,
+                   f.30140.0.0,
+                   f.30200.0.0,
+                   f.30170.0.0,
+                   f.30230.0.0,
+                   f.30080.0.0,
+                   f.30090.0.0,
+                   f.30110.0.0,
+                   f.30010.0.0,
+                   f.30070.0.0,
+                   f.30250.0.0,
+                   f.30240.0.0,
+                   f.30000.0.0
+               )
+           ))
+
+old_cols <- colnames(blood_count)
+
+blood_count <- 
+    rename(blood_count,
+           eid = f.eid,
+           basophill_count = f.30160.0.0,
+           basophill_percentage = f.30220.0.0,
+           eosinophill_count = f.30150.0.0,
+           eosinophill_percentage = f.30210.0.0,
+           haematocrit_percentage = f.30030.0.0,
+           haemoglobin_concentration = f.30020.0.0,
+           high_light_scatter_reticulocyte_count = f.30300.0.0,
+           high_light_scatter_reticulocyte_percentage = f.30290.0.0,
+           immature_reticulocyte_fraction = f.30280.0.0,
+           lymphocyte_count = f.30120.0.0,
+           lymphocyte_percentage = f.30180.0.0,
+           mean_corpuscular_haemoglobin = f.30050.0.0,
+           mean_corpuscular_haemoglobin_concentration = f.30060.0.0,
+           mean_corpuscular_volume = f.30040.0.0,
+           mean_platelet_volume = f.30100.0.0,
+           mean_reticulocyte_volume = f.30260.0.0,
+           mean_sphered_cell_volume = f.30270.0.0,
+           monocyte_count = f.30130.0.0,
+           monocyte_percentage = f.30190.0.0,
+           neutrophill_count = f.30140.0.0,
+           neutrophill_percentage = f.30200.0.0,
+           nucleated_red_blood_cell_count = f.30170.0.0,
+           nucleated_red_blood_cell_percentage = f.30230.0.0,
+           platelet_count = f.30080.0.0,
+           platelet_crit = f.30090.0.0,
+           platelet_distribution_width = f.30110.0.0,
+           erythrocyte_count = f.30010.0.0,
+           erythrocyte_distribution_width = f.30070.0.0,
+           reticulocyte_count = f.30250.0.0,
+           reticulocyte_percentage = f.30240.0.0,
+           leukocyte_count = f.30000.0.0
+    )
+
+new_cols <- colnames(blood_count)
+column_key_blood_count <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r urine, results='hide'}
+
+### urine biomarkers
+urine <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.30510.0.0,
+                   f.30500.0.0,
+                   f.30520.0.0,
+                   f.30530.0.0
+               )
+           ))
+
+old_cols <- colnames(urine)
+
+urine <-
+    rename(urine,
+           eid = f.eid,
+           creatinine_urine = f.30510.0.0,
+           microalbumin_urine = f.30500.0.0,
+           potassium_urine = f.30520.0.0,
+           sodium_urine = f.30530.0.0
+    )
+
+new_cols <- colnames(urine)
+column_key_urine <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r enviro, results='hide'}
+
+### physical environment
+enviro <- 
+    subset(dat,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.24014.0.0,
+                   f.24012.0.0,
+                   f.24010.0.0,
+                   f.24016.0.0,
+                   f.24017.0.0,
+                   f.24018.0.0,
+                   f.24003.0.0,
+                   f.24004.0.0,
+                   f.24019.0.0,
+                   f.24005.0.0,
+                   f.24007.0.0,
+                   f.24006.0.0,
+                   f.24008.0.0,
+                   f.24015.0.0,
+                   f.24013.0.0,
+                   f.24011.0.0,
+                   f.24009.0.0,
+                   f.24020.0.0,
+                   f.24021.0.0,
+                   f.24022.0.0,
+                   f.24506.0.0,
+                   f.24507.0.0,
+                   f.24500.0.0,
+                   f.24503.0.0,
+                   f.24501.0.0,
+                   f.24504.0.0,
+                   f.24502.0.0,
+                   f.24505.0.0,
+                   f.24508.0.0,
+                   f.20118.0.0
+               )
+           ))
+
+old_cols <- colnames(enviro)
+
+enviro <- 
+    rename(enviro,
+           eid = f.eid,
+           close_to_major_road = f.24014.0.0,
+           inverse_distance_nearest_major_road = f.24012.0.0,
+           inverse_distance_nearest_road = f.24010.0.0,
+           NO2_2005 = f.24016.0.0,
+           NO2_2006 = f.24017.0.0,
+           NO2_2007 = f.24018.0.0,
+           NO2_2010 = f.24003.0.0,
+           NO_2010 = f.24004.0.0,
+           PM10_2007 = f.24019.0.0,
+           PM10_2010 = f.24005.0.0,
+           PM2.5_absorbance_2010 = f.24007.0.0,
+           PM2.5_2010 = f.24006.0.0,
+           PM2.5_to_10_2010 = f.24008.0.0,
+           road_length_sum_100m = f.24015.0.0,
+           traffic_load_major_roads = f.24013.0.0,
+           traffic_intensity_nearest_major_road = f.24011.0.0,
+           traffic_intensity_nearest_road = f.24009.0.0,
+           daytime_sound_average = f.24020.0.0,
+           evening_sound_average = f.24021.0.0,
+           night_sound_average = f.24022.0.0,
+           natural_environment_buffer_1000m = f.24506.0.0,
+           natural_environment_buffer_300m = f.24507.0.0,
+           greenspace_buffer_1000m = f.24500.0.0,
+           greenspace_buffer_300m = f.24503.0.0,
+           domestic_garden_buffer_1000m = f.24501.0.0,
+           domestic_garden_buffer_300m = f.24504.0.0,
+           water_buffer_1000m = f.24502.0.0,
+           water_buffer_300m = f.24505.0.0,
+           distance_to_coast = f.24508.0.0,
+           home_population_density = f.20118.0.0
+    )
+
+new_cols <- colnames(enviro)
+column_key_enviro <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r merge, results='hide'}
+
+#merge all exposure datasets into single, raw dataset
+exposures <- 
+    list(
+        elf,
+        sle,
+        soc,
+        socio_dem,
+        fam_health,
+        med_cond,
+        meds,
+        male_repro,
+        female_repro,
+        mental_health,
+        electronics,
+        sleep,
+        smok,
+        alcohol,
+        diet,
+        sun,
+        sex_hist,
+        phys_act,
+        vision,
+        hearing,
+        bp,
+        a_stiff,
+        anthro,
+        spiro,
+        bmd,
+        imd,
+        blood,
+        blood_count,
+        urine,
+        enviro
+    )
+
+# merge all individuals datasets into single dataframe
+reduce <- Reduce(function(x, y) 
+    merge(x = x, 
+          y = y, 
+          by = "eid",  
+          all = TRUE), 
+    exposures)
+```
+
+```{r new, results='hide'}
+
+# There were variables missing in the first UKB dataset sent to us, which we had to request that they resend. These are those variables.
+
+# Load new variables
+new <- readRDS(".../UKB/Datasets/3. Second dataset from UKB/ukb43025.rds")
+
+new <- 
+    subset(new,
+           select = c(
+               Cs(
+                   f.eid,
+                   f.20023.0.0,
+                   f.4282.0.0,
+                   f.20016.0.0,
+                   f.20018.0.0,
+                   f.399.0.1,
+                   f.399.0.2,
+                   f.26429.0.0,
+                   f.24023.0.0,
+                   f.24024.0.0,
+                   f.23105.0.0,
+                   f.1498.0.0,
+                   f.2936.0.0,
+                   f.3476.0.0,
+                   f.3486.0.0,
+                   f.3496.0.0,
+                   f.4526.0.0,
+                   f.4537.0.0,
+                   f.4548.0.0,
+                   f.4559.0.0,
+                   f.4570.0.0,
+                   f.4581.0.0,
+                   f.3581.0.0,
+                   f.2986.0.0,
+                   f.22040.0.0
+               )
+           ))
+
+old_cols <- colnames(new)
+
+new <- 
+    rename(new,
+           eid = f.eid,
+           identify_matches_mean_time = f.20023.0.0,
+           maximum_digits_remembered = f.4282.0.0,
+           fluid_intelligence = f.20016.0.0,
+           prospective_memory = f.20018.0.0,
+           incorrect_matches_round1 = f.399.0.1,
+           incorrect_matches_round2 = f.399.0.2,
+           IMD_employment_Scotland = f.26429.0.0,
+           sound_average_16hr = f.24023.0.0,
+           sound_average_24hr = f.24024.0.0,
+           basal_metabolic_rate = f.23105.0.0,
+           coffee = f.1498.0.0,
+           resume_smoking_likelihood = f.2936.0.0,
+           difficulty_not_smoking_1day = f.3476.0.0,
+           stop_smoking_attempt = f.3486.0.0,
+           stop_smoking_desire = f.3496.0.0,
+           happiness = f.4526.0.0,
+           job_satisfaction = f.4537.0.0,
+           health_satisfaction = f.4548.0.0,
+           family_satisfaction = f.4559.0.0,
+           friends_satisfaction = f.4570.0.0,
+           financial_satisfaction = f.4581.0.0,
+           menopause_age = f.3581.0.0,
+           diabetes_insulin_1yr = f.2986.0.0,
+           MET_mins_sum = f.22040.0.0
+    )
+
+new_cols <- colnames(new)
+column_key_new <- as.data.frame(cbind(old_cols, new_cols))
+
+```
+
+```{r re-merge, results='hide'}
+
+#merge new vars with all other exposures into updated, raw dataset
+dat <- merge(reduce, 
+             new, 
+             by = "eid", 
+             all = TRUE)
+
+# combine all column keys
+column_key <- 
+    rbind(
+        column_key_elf,
+        column_key_sle,
+        column_key_soc,
+        column_key_socio_dem,
+        column_key_fam_health,
+        column_key_med_cond,
+        column_key_meds,
+        column_key_male_repro,
+        column_key_female_repro,
+        column_key_mental_health,
+        column_key_electronics,
+        column_key_sleep,
+        column_key_smoking,
+        column_key_alcohol,
+        column_key_diet,
+        column_key_sun,
+        column_key_sex_hist,
+        column_key_phys_act,
+        column_key_vision,
+        column_key_hearing,
+        column_key_bp,
+        column_key_a_stiff,
+        column_key_anthro,
+        column_key_spiro,
+        column_key_bmd,
+        column_key_imd,
+        column_key_blood,
+        column_key_blood_count,
+        column_key_urine,
+        column_key_enviro,
+        column_key_new
+    )
+
+# remove duplicated eid rows
+column_key <- column_key[!duplicated(column_key), ]
+
+# check column key has all variables
+nrow(column_key) == ncol(dat)
+
+save(dat,
+     column_key, 
+     file = ".../UKB/Datasets/4. Categorized raw datasets/ukb_all_exposures_june_22_2023.RData")
+```

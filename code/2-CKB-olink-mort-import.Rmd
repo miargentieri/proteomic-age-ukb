@@ -1,0 +1,106 @@
+
+```{r packages}
+library(Hmisc)
+library(mice)
+```
+
+```{r path}
+path <- ".../Analysis projects/CKB exposome"
+path2 <- ".../UKB/Analysis projects/ACM EWAS 2021"
+
+```
+
+```{r import}
+
+# load olink data
+cardio_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_cardiometabolic.csv")
+inflamm_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_inflammation.csv")
+neuro_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_neurology.csv")
+onco_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_oncology.csv")
+
+olink_list <- list(cardio_olink, inflamm_olink, neuro_olink, onco_olink)
+
+# merge together and do not keep duplicated columns (some proteins are in multiple panels)
+merge_dfs <- function(x,y){merge(x, y[, c("csid", setdiff(colnames(y), colnames(x)))], by = "csid")}
+olink_dat <- Reduce(merge_dfs, olink_list)
+
+```
+
+```{r questionnaire_dat}
+# olink <- read.csv("K:/CKB-exposome/For_Austin/olink_data/data_baseline_olink.csv")
+dat <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_questionnaires.csv")
+
+# age at recruitment - convert to decimal
+dat$recruitment_age <- dat$age_at_study_date_x100 / 100
+summary(dat$recruitment_age)
+```
+
+```{r mortality_indicator}
+## mortality indicator
+dat$ACM_event_indicator <- NA
+dat$ACM_event_indicator[which(dat$censoring_reason == "Dead                          ")] <- 1
+dat$ACM_event_indicator[which(is.na(dat$ACM_event_indicator))] <- 0
+
+table(dat$ACM_event_indicator)
+
+# age at recruitment - convert to decimal
+dat$age_at_study_date <- dat$age_at_study_date_x100 / 100
+summary(dat$age_at_study_date)
+```
+
+```{r recode_olink}
+# recode column names to match UKB olink data
+colnames(olink_dat)[-1] <- gsub("ol_", "", colnames(olink_dat)[-1])
+colnames(olink_dat)[-1] <- toupper(colnames(olink_dat)[-1])
+
+colnames(olink_dat)[which(colnames(olink_dat) == "NTPROBNP")] <- "NTproBNP"
+colnames(olink_dat)[which(colnames(olink_dat) == "C19ORF12")] <- "C19orf12"
+colnames(olink_dat)[which(colnames(olink_dat) == "C2ORF69")] <- "C2orf69"
+colnames(olink_dat)[which(colnames(olink_dat) == "C7ORF50")] <- "C7orf50"
+colnames(olink_dat)[which(colnames(olink_dat) == "C9ORF40")] <- "C9orf40"
+
+```
+
+```{r merge_ascertainment}
+ascertainment <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_ascertainments.csv")
+asc_cols <- c('csid', 'olinkexp1536_chd_b1_subcohort', 'olinkexpexpan_chd_b1_subcohort')
+
+olink_dat <- merge(
+  olink_dat,
+  ascertainment[asc_cols],
+  by = 'csid',
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+```
+
+```{r merge}
+# columns to keep
+keep_cols <- c(
+  "csid",
+  # "ACM_event_indicator",
+  "is_female",
+  "recruitment_age"
+)
+
+# subset data
+subset_dat <- subset(dat, select = keep_cols)
+
+# merge with olink data
+olink_dat <- merge(
+  olink_dat,
+  subset_dat,
+  by = "csid",
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+```
+
+```{r save}
+
+# save csv
+write.csv(olink_dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/ckb/ckb_coded_olink_oct_17_2023.csv")
+
+```

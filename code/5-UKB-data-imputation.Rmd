@@ -1,0 +1,2981 @@
+# Muliple imputation using random forest and predictive mean matching
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(results = 'asis')
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r import, results='hide'}
+library(mice)
+library(survival)
+library(Hmisc)
+library(missRanger)
+library(plotly)
+library(readr)
+
+# load recoded dataset
+dat <- readRDS(".../UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_jun_22_2023.rds")
+```
+
+```{r subset}
+
+# remove participant without valid recruitment centre data
+dat <- dat[which(!is.na(dat$recruitment_centre)), ]
+
+```
+
+```{r merge_telomere_data}
+
+# load telomere data
+telomeres <- read.csv('.../UKB/Analysis projects/ACM EWAS 2021/datasets/telomere_data_june_21_2023.csv')
+
+# merge with main dataset
+dat <- merge(
+  dat,
+  telomeres,
+  by = 'eid',
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+```
+
+``` {r recode_nested}
+### recoding pack years (it's a nested variable) so that those who answered 'never' to smoking status have a 0 instead of NA
+dat$pack_years <- 
+  ifelse(!is.na(dat$pack_years), 
+         dat$pack_years, 
+         ifelse(dat$ever_smoked == "No", 
+                0,
+                NA
+         )
+  )
+
+dat$pack_years_prop <- 
+  ifelse(!is.na(dat$pack_years_prop), 
+         dat$pack_years_prop,
+         ifelse(dat$ever_smoked == "No",
+                0,
+                NA
+         )
+  )
+
+### recode home population density to urban/rural
+
+# home population density
+dat$population_density <- dat$home_population_density
+
+# recode to urban / rural
+dat$population_density <-
+  ifelse(
+    dat$home_population_density == "Postcode not linkable",
+    "Postcode not linkable",
+    ifelse(
+      dat$home_population_density %in% c(
+        "England/Wales - Urban - sparse" ,
+        "England/Wales - Urban - less sparse",
+        "Scotland - Large Urban Area",
+        "Scotland - Other Urban Area"),
+      "Urban",
+      "Rural"
+    )
+  )
+
+# make factor 
+dat$population_density <- 
+  factor(dat$population_density,
+         ordered = FALSE,
+         levels = c("Urban", "Rural", "Postcode not linkable"))
+
+# relevel
+dat$population_density <- 
+  relevel(dat$population_density, ref = "Urban")
+
+# remove old variable
+dat <- subset(dat, select = -c(home_population_density))
+
+```
+
+```{r repro_recode, results='hide'}
+
+### recode some nested female reproduction variables 
+### I want to keep for later analyses and don't want excluded in the next step
+
+## Female variables
+dat$menopause_age <- 
+  ifelse(!is.na(dat$menopause_age),
+         dat$menopause_age, 
+         ifelse(dat$sex == "Male",
+                777,
+                ifelse(dat$menopause == "No", 
+                       # code nested missing as 777
+                       777, 
+                       # response to menopause is 1, but menopause age is truly missing
+                       NA)))
+dat$menopause_age <- as.numeric(dat$menopause_age)
+
+dat$birth_age <- 
+  ifelse(!is.na(dat$birth_age),
+         dat$birth_age,
+         ifelse(dat$sex == "Male",
+                777,
+                ifelse(dat$number_births != 1,
+                       777,
+                       NA)))
+dat$birth_age <- as.numeric(dat$birth_age)
+
+dat$first_birth_age <- 
+  ifelse(!is.na(dat$first_birth_age), 
+         dat$first_birth_age,
+         ifelse(dat$sex == "Male",
+                777,
+                ifelse(dat$number_births <= 1, 
+                       777,
+                       NA)))
+dat$first_birth_age <- as.numeric(dat$first_birth_age)
+
+dat$last_birth_age <- 
+    ifelse(!is.na(dat$last_birth_age),
+           dat$last_birth_age,
+           ifelse(dat$sex == "Male",
+                  777,
+                  ifelse(dat$number_births <= 1,
+                         777,
+                         NA)))
+dat$last_birth_age <- as.numeric(dat$last_birth_age)
+
+
+## Male variables
+dat$balding <- 
+  ifelse(
+    !is.na(dat$balding),
+    dat$balding,
+    ifelse(
+       dat$sex == "Female",
+       777,
+       NA
+    )
+  )
+
+dat$age_facial_hair <- 
+  ifelse(
+    !is.na(dat$age_facial_hair),
+    dat$age_facial_hair,
+    ifelse(
+       dat$sex == "Female",
+       777,
+       NA
+    )
+  )
+
+dat$age_voice <- 
+  ifelse(
+    !is.na(dat$age_voice),
+    dat$age_voice,
+    ifelse(
+       dat$sex == "Female",
+       777,
+       NA
+    )
+  )
+
+dat$number_children <- 
+  ifelse(
+    !is.na(dat$number_children),
+    dat$number_children,
+    ifelse(
+       dat$sex == "Female",
+       777,
+       NA
+    )
+  )
+
+```
+
+```{r recode_ethnicity}
+
+# ethnicity
+dat$ethnicity_old <- dat$ethnicity
+dat$ethnicity <- NA
+
+dat$ethnicity <-
+  ifelse(
+    dat$ethnicity_old == "Black or Black British" |
+      dat$ethnicity_old == "Caribbean" |
+      dat$ethnicity_old == "African" |
+      dat$ethnicity_old == "Any other Black background",
+    "Black",
+    ifelse(
+      dat$ethnicity_old == "White" |
+        dat$ethnicity_old == "British" |
+        dat$ethnicity_old == "Irish" |
+        dat$ethnicity_old == "Any other white background",
+      "White",
+      ifelse(
+        dat$ethnicity_old == "Mixed" |
+          dat$ethnicity_old == "White and Black Caribbean" |
+          dat$ethnicity_old == "White and Black African" |
+          dat$ethnicity_old == "White and Asian" |
+          dat$ethnicity_old == "Any other mixed background",
+        "Mixed",
+        ifelse(
+          dat$ethnicity_old == "Asian or Asian British" |
+            dat$ethnicity_old == "Chinese" |
+            dat$ethnicity_old == "Indian" |
+            dat$ethnicity_old == "Pakistani" |
+            dat$ethnicity_old == "Bangladeshi" |
+            dat$ethnicity_old == "Any other Asian background",
+          "Asian",
+          ifelse(dat$ethnicity_old == "Other ethnic group",
+                 "Other",
+                 NA)
+        )
+      )
+    )
+  )
+
+dat$ethnicity <- factor(dat$ethnicity, ordered = FALSE)
+dat$ethnicity <- relevel(dat$ethnicity, ref = "White")
+
+```
+
+```{r missing_percent}
+
+# identify variables with less than 80% missing
+dat_missing <- sapply(dat, function(x){(length(x[which(is.na(x))])/length(x)) < 0.8})
+
+# list of nested vars for OPA summary
+OPA_vars <-
+  c(
+    Cs(
+      pleasure_walks_duration,
+      pleasure_walks_freq_4wks,
+      strenuous_sports_duration,
+      strenuous_sports_freq_4wks,
+      other_exercise_duration,
+      other_exercise_freq_4wks,
+      heavy_DIY_duration,
+      heavy_DIY_freq_4wks,
+      light_DIY_duration,
+      light_DIY_freq_4wks,
+      employment_standing,
+      employment_heavy_manual,
+      employment_hours
+    )
+  )
+
+# retain OPA variables, even though missing is higher
+dat_missing[names(dat_missing) %in% OPA_vars] <- TRUE 
+
+# keep only variable columns with < 80% missing
+dat_nomiss <- dat[dat_missing]
+
+```
+
+``` {r nested, results='hide'}
+
+### remove all nested variables 
+
+# list of all nested variables
+nested <- c(
+  Cs(
+    glasses_age,
+    MI_diagnosis_age,
+    angina_diagnosis_age,
+    stroke_diagnosis_age,
+    bp_diagnosis_age,
+    DVT_diagnosis_age,
+    pulm_embolism_diagnosis_age,
+    emphysema_diagnosis_age,
+    asthma_diagnosis_age,
+    rhinitis_diagnosis_age,
+    gest_diabetes_only,
+    diabetes_diagnosis_age,
+    diabetes_insulin_1yr,
+    myopia_eye,
+    hypertropia_eye,
+    presbyopia_eye,
+    astigmatism_eye,
+    strabismus_eye,
+    amblyopia_eye,
+    other_eye,
+    other_serious_eye,
+    diabetes_eye,
+    glaucoma_eye,
+    injury_eye,
+    cataract_eye,
+    macular_degeneration_eye,
+    diabetes_eye_age,
+    glaucoma_age,
+    injury_eye_age,
+    cataract_age,
+    macular_degeneration_age,
+    other_serious_eye_age,
+    bowel_cancer_screening_recent,
+    PSA_test_time_since,
+    light_smoking,
+    smoking_start_age_former,
+    tobacco_type_previous,
+    number_cigarettes_previous,
+    smoking_stop_age,
+    ever_stop_smoking_6months,
+    number_quit_attempts,
+    light_smoking,
+    smoking_start_age_current,
+    tobacco_type,
+    previous_smoker,
+    number_cigarettes,
+    cigarettes_stop_age,
+    previous_number_cigarettes,
+    waking_smoke_time,
+    difficulty_not_smoking_1day,
+    stop_smoking_attempt,
+    stop_smoking_desire,
+    smoking_10yrs,
+    smoking_start_age_former,
+    tobacco_type_previous,
+    number_cigarettes_previous,
+    smoking_stop_age,
+    ever_stop_smoking_6months,
+    number_quit_attempts,
+    alcohol_former,
+    red_wine_monthly,
+    white_wine_monthly,
+    beer_monthly,
+    spirits_monthly,
+    fortified_wine_monthly,
+    other_alcohol_monthly,
+    red_wine_weekly,
+    white_wine_weekly,
+    beer_weekly,
+    spirits_weekly,
+    fortified_wine_weekly,
+    other_alcohol_weekly,
+    alcohol_with_meals,
+    alcohol_10yrs,
+    reason_reducing_alcohol,
+    reason_stopped_alcohol,
+    glasses_myopia,
+    glasses_presbyopia,	
+    glasses_hypermetropia,	
+    glasses_amblyopia,	
+    glasses_astigmatism,	
+    glasses_strabismus,	
+    glasses_other,
+    glaucoma,
+    headaches_3months,
+    facial_pain_3months,
+    neck_pain_3months,
+    stomach_pain_3months,
+    hip_pain_3months,
+    knee_pain_3months,
+    general_pain_3months,
+    chest_pain_walking_normal,
+    chest_pain_ceases_still,
+    chest_pain_walking_uphill,
+    father_age,
+    father_age_death,
+    mother_age,
+    mother_age_death,
+    moderate_activity_duration,
+    vigorous_activity_duration,
+    walks_duration,
+    stair_climbing_freq_4wks,
+    menstruating_today,
+    oral_contraceptive_age_first,
+    oral_contraceptive_age_last,
+    HRT_age_first,
+    HRT_age_last,
+    hysterectomy_age,
+    bilateral_oophorectomy_age,
+    mammogram_years_since,
+    cervical_smear_years_since,
+    first_child_birth_weight,
+    number_stillbirths,
+    number_miscarriages,
+    number_pregnancy_terminations,
+    period_time_since,
+    resume_smoking_likelihood,
+    stopped_smoking_health,
+    stopped_smoking_illness,
+    stopped_smoking_financial,
+    stopped_smoking_doctor,
+    reduced_smoking_health,
+    reduced_smoking_illness,
+    reduced_smoking_financial,
+    reduced_smoking_doctor,
+    education_age_complete,
+    country_birth_non_UK,
+    past_tobacco,
+    spread_type_details,
+    tobacco_exposure_outside,
+    tobacco_exposure_home,
+    hshld_smokers,
+    employment_distance, # nested
+    employment_years, # nested
+    employment_travel_freq, # nested
+    car_commute, # nested
+    walk_commute, # nested
+    public_transport_commute, # nested
+    cycle_commute, # nested
+    shift_work, # nested
+    night_shift_work, # nested
+    noisy_workplace, # nested
+    car_transport_4wks, # nested
+    walk_transport_4wks, # nested
+    public_transport_4wks, # nested
+    cycle_transport_4wks # nested
+    
+    # employment_hours, # nested
+    # employment_standing, # nested
+    # employment_heavy_manual, # nested
+    
+    # pleasure_walks_duration,
+    # other_exercise_duration,
+    # strenuous_sports_duration,
+    # heavy_DIY_duration,
+    # light_DIY_duration,
+    # 
+    # pleasure_walks_freq_4wks,
+    # other_exercise_freq_4wks,
+    # strenuous_sports_freq_4wks,
+    # heavy_DIY_freq_4wks,
+    # light_DIY_freq_4wks,
+    
+  )
+)
+
+other_remove <- c(
+  Cs(
+    # vars that are country-specific
+    IMD_services_Scotland,
+    IMD_services_Wales,
+    IMD_community_safety_Wales,
+    IMD_crime_England,
+    IMD_crime_Scotland,
+    IMD_education_England,
+    IMD_education_Scotland,
+    IMD_education_Wales,
+    IMD_employment_England,
+    IMD_employment_Scotland,
+    IMD_employment_Wales,
+    IMD_health_England,
+    IMD_health_Scotland,
+    IMD_health_Wales,
+    IMD_housing_England,
+    IMD_housing_Scotland,
+    IMD_housing_Wales,
+    IMD_income_England,
+    IMD_income_Scotland,
+    IMD_income_Wales,
+    IMD_total_England,
+    IMD_total_Scotland,
+    IMD_total_Wales,
+    IMD_living_environ_England,
+    IMD_phsyical_environ_Wales,
+    childhood_love,
+    childhood_physical_abuse,
+    childhood_hate,
+    childhood_sex_abuse,
+    childhood_doctor,
+    birth_weight_known,
+    ankle_spacing_width_left,
+    ankle_spacing_width_right,
+    heel_bone_mineral_density_left,
+    heel_bone_mineral_density_right,
+    heel_bone_mineral_density_t_score_left,
+    heel_bone_mineral_density_t_score_right,
+    heel_broadband_attenuation_left,
+    heel_broadband_attenuation_right,
+    heel_QUI_left,
+    heel_QUI_right,
+    heel_sound_speed_left,
+    heel_sound_speed_right,
+    heel_bone_mineral_density_t_score,
+    heel_QUI,
+    heel_broadband_attenuation,
+    heel_sound_speed,
+    ankle_spacing_width,
+    bone_density_measure_foot,
+    fractured_heel_left,
+    fractured_heel_right,
+    other_diagnosis,
+    other_eye_problems, # not interpretable
+    other_meds, # not interpretable
+    other_group_activity, # not interpretable
+    other_serious_eye_condition, # not interpretable
+    hshld_other_related, # not interpretable
+    hshld_other_unrelated # not interpretable
+  )
+)
+
+# remove all columns with nested variables
+dat_nonest <- dat_nomiss[ ,which(colnames(dat_nomiss) %nin% nested)] 
+
+# remove all columns with other variables to exclude
+dat_nonest <- dat_nonest[ ,which(colnames(dat_nonest) %nin% other_remove)] 
+
+```
+
+```{r ordinal_vars}
+
+### re-classing ordinal categorical variables as ordered
+
+# get position of all factor variables
+factors <- sapply(dat_nonest, is.factor)
+
+# subset dataset to just factors
+data <- dat_nonest[factors]
+
+# make list of levels for each factor
+factor_list <- sapply(data, nlevels)
+
+# get position of all factors with >2 responses
+non_binary <- factor_list > 2
+
+# subset data to non-binary factors
+data_cat <- data[non_binary]
+
+# get names of non-binary factors to check if ordinal 
+colnames(data_cat)
+
+# function to order ordinal factors
+make_ordered <- function(x) {
+
+  x$number_operations <- as.numeric(x$number_operations)
+  
+  x$family_visit_freq <-
+    factor(x$family_visit_freq,
+           ordered = TRUE,
+           levels = c("No friends/family outside household",
+                      "Never or almost never",
+                      "Once every few months",
+                      "About once a month",
+                      "About once a week",
+                      "2-4 times a week",
+                      "Almost daily"))
+  
+  x$confide_freq <-
+    factor(x$confide_freq,
+           ordered = TRUE,
+           levels = c("Never or almost never",
+                      "Once every few months",
+                      "About once a month",
+                      "About once a week",
+                      "2-4 times a week",
+                      "Almost daily"))
+  
+  x$hshld_vehicles <-
+    factor(x$hshld_vehicles,
+           ordered = TRUE,
+           levels = c("None",
+                      "One",
+                      "Two",
+                      "Three",
+                      "Four or more"))
+  
+  x$hshld_income <-
+    factor(x$hshld_income,
+           ordered = TRUE,
+           levels = c("Less than 18,000",
+                      "18,000 to 30,999",
+                      "31,000 to 51,999",
+                      "52,000 to 100,000",
+                      "Greater than 100,000"))
+  
+  x$private_healthcare <-
+    factor(x$private_healthcare,
+           ordered = TRUE,
+           levels = c("No, never",
+                      "Yes, sometimes",
+                      "Yes, most of the time",
+                      "Yes, all of the time"))
+  
+  x$overall_health <-
+    factor(x$overall_health,
+           ordered = TRUE,
+           levels = c("Poor",
+                      "Fair",
+                      "Good",
+                      "Excellent"))
+  
+  x$falls_last_1yr <-
+    factor(x$falls_last_1yr,
+           ordered = TRUE,
+           levels = c("No falls",
+                      "Only one fall",
+                      "More than one fall"))
+  
+  x$tinnitus <-
+    factor(x$tinnitus,
+           ordered = TRUE,
+           levels = c("No, never",
+                      "Yes, but not now, but have in the past",
+                      "Yes, now some of the time",
+                      "Yes, now a lot of the time",
+                      "Yes, now most or all of the time"))
+  
+  x$loud_music_exposure <-
+    factor(x$loud_music_exposure,
+           ordered = TRUE,
+           levels = c("No",
+                      "Yes, for less than a year",
+                      "Yes, for around 1-5 years",
+                      "Yes, for more than 5 years"))
+  
+  x$depressed_mood_freq <-
+    factor(x$depressed_mood_freq,
+           ordered = TRUE,
+           levels = c("Not at all",
+                      "Several days",
+                      "More than half the days",
+                      "Nearly every day"))
+  
+  x$unenthusiasm_freq <-
+    factor(x$unenthusiasm_freq,
+           ordered = TRUE,
+           levels = c("Not at all",
+                      "Several days",
+                      "More than half the days",
+                      "Nearly every day"))
+  
+  x$tenseness_freq <-
+    factor(x$tenseness_freq,
+           ordered = TRUE,
+           levels = c("Not at all",
+                      "Several days",
+                      "More than half the days",
+                      "Nearly every day"))
+  
+  x$tiredness_freq <-
+    factor(x$tiredness_freq,
+           ordered = TRUE,
+           levels = c("Not at all",
+                      "Several days",
+                      "More than half the days",
+                      "Nearly every day"))
+  
+  x$mobile_phone_duration <-
+    factor(x$mobile_phone_duration,
+           ordered = TRUE,
+           levels = c("Never used mobile phone at least once per week",
+                      "One year or less",
+                      "Two to four years",
+                      "Five to eight years",
+                      "More than eight years"))
+  
+  x$mobile_phone_weekly_usage <-
+    factor(x$mobile_phone_weekly_usage,
+           ordered = TRUE,
+           levels = c("Less than 5mins",
+                      "5-29 mins",
+                      "30-59 mins",
+                      "1-3 hours",
+                      "4-6 hours",
+                      "More than 6 hours"))
+  
+  x$speakerphone <-
+    factor(x$speakerphone,
+           ordered = TRUE,
+           levels = c("Never or almost never",
+                      "Less than half the time",
+                      "About half the time",
+                      "More than half the time",
+                      "Always or almost always"))
+  
+  x$computer_games <-
+    factor(x$computer_games,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Often"))
+  
+  x$easy_wake <-
+    factor(x$easy_wake,
+           ordered = TRUE,
+           levels = c("Not at all easy",
+                      "Not very easy",
+                      "Fairly easy",
+                      "Very easy"))
+  
+  x$nap <-
+    factor(x$nap,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Usually"))
+  
+  x$sleep_difficulty <-
+    factor(x$sleep_difficulty,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Usually"))
+  
+  x$narcolepsy <-
+    factor(x$narcolepsy,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Often",
+                      "All of the time"))
+  
+  x$tobacco <-
+    factor(x$tobacco,
+           ordered = TRUE,
+           levels = c("No",
+                      "Only occasionally",
+                      "Yes, on most or all days"))
+  
+  x$oily_fish <-
+    factor(x$oily_fish,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$non_oily_fish <-
+    factor(x$non_oily_fish,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$processed_meat <-
+    factor(x$processed_meat,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$poultry <-
+    factor(x$poultry,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$beef <-
+    factor(x$beef,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$lamb <-
+    factor(x$lamb,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$pork <-
+    factor(x$pork,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$cheese <-
+    factor(x$cheese,
+           ordered = TRUE,
+           levels = c("Never",
+                      "Less than once a week",
+                      "Once a week",
+                      "2-4 times a week",
+                      "5-6 times a week",
+                      "Once or more daily"))
+  
+  x$salt <-
+    factor(x$salt,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Usually",
+                      "Always"))
+  
+  x$hot_drink_temp <-
+    factor(x$hot_drink_temp,
+           ordered = TRUE,
+           levels = c("Do not drink hot drinks",
+                      "Warm",
+                      "Hot",
+                      "Very hot"))
+  
+  x$diet_variation <-
+    factor(x$diet_variation,
+           ordered = TRUE,
+           levels = c("Never/rarely",
+                      "Sometimes",
+                      "Often" ))
+  
+  x$skin_tan_ease <-
+    factor(x$skin_tan_ease,
+           ordered = TRUE,
+           levels = c("Never tan, only burn",
+                      "Get mildly or occasionally tanned",
+                      "Get moderately tanned",
+                      "Get very tanned"))
+  
+  x$sun_protection_use <-
+    factor(x$sun_protection_use,
+           ordered = TRUE,
+           levels = c("Do not go out in sunshine",
+                      "Never/rarely",
+                      "Sometimes",
+                      "Most of the time",
+                      "Always"))
+  
+  x$IPAQ_activity_group <-
+    factor(x$IPAQ_activity_group,
+           ordered = TRUE,
+           levels = c("low",
+                      "moderate",
+                      "high"))
+  
+  x$fast_driving <-
+    factor(x$fast_driving,
+           ordered = TRUE,
+           levels = c("Do not drive on the motorway",
+                      "Never/rarely",
+                      "Sometimes",
+                      "Often",
+                      "Most of the time"))
+  
+  x$happiness <-
+    factor(x$happiness,
+           ordered = TRUE,
+           levels = c("Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  x$job_satisfaction <-
+    factor(x$job_satisfaction,
+           ordered = TRUE,
+           levels = c("I am not employed",
+                      "Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  x$health_satisfaction <-
+    factor(x$health_satisfaction,
+           ordered = TRUE,
+           levels = c("Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  x$family_satisfaction <-
+    factor(x$family_satisfaction,
+           ordered = TRUE,
+           levels = c("Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  x$friends_satisfaction <-
+    factor(x$friends_satisfaction,
+           ordered = TRUE,
+           levels = c("Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  x$financial_satisfaction <-
+    factor(x$financial_satisfaction,
+           ordered = TRUE,
+           levels = c("Extremely unhappy",
+                      "Very unhappy",
+                      "Moderately unhappy",
+                      "Moderately happy",
+                      "Very happy",
+                      "Extremely happy"))
+  
+  return(x)
+}
+
+# apply to male and female datasets
+dat_final <- make_ordered(dat_nonest)
+
+```
+
+```{r save_data_dictionary}
+
+# get variables in datasets used for imputation
+total_cols <- colnames(dat_final)
+
+# remove eid
+total_cols <- total_cols[which(total_cols != "eid")]
+
+# load data dictionary
+dict <- read.csv(".../UKB/Data dictionaries/Argentieri UKB dataset data dictionary.csv")
+
+# rename to match
+dict$Variable[which(dict$Description == "Lipoprotein A")] <- "lipoprotein_A"
+
+# subset data dictionary to just variables used in imputation
+dict <- dict[which(dict$Variable %in% total_cols), ]
+
+# check for variables not in dict
+total_cols[total_cols %nin% dict$Variable]
+
+# save 
+write.csv(dict, ".../UKB/Analysis projects/Proteomics/general data coding/pre_imputation_data_dictionary_jun_23_2023.csv")
+
+
+## rates of missing in datasets
+missings <- sapply(dat_final[which(colnames(dat_final) %nin% OPA_vars)], function(x) length(x[which(is.na(x))]))
+missings <- sapply(missings, function(x) x/nrow(dat_final))
+range(missings)
+mean(missings)
+
+```
+
+``` {r save}
+
+save(dat_final,
+     file = ".../UKB/Analysis projects/Proteomics/general data coding/baseline_imputation_data_jun_22_2023.RData")
+
+```
+
+```{r imputation, eval=FALSE}
+
+# more instructions here: https://cran.r-project.org/web/packages/missRanger/vignettes/vignette_missRanger.html
+
+load("/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/data/baseline_imputation_data_jun_22_2023.RData")
+library(missRanger)
+library(Hmisc)
+
+exclude_vars <- c(
+    Cs(
+        eid,
+        menopause_age,
+        birth_age,
+        first_birth_age,
+        last_birth_age,
+        balding,
+        age_facial_hair,
+        age_voice,
+        number_children,
+        mammogram,
+        cervical_smear,
+        menopause,
+        stillbirth,
+        oral_contraceptive,
+        HRT,
+        hysterectomy,
+        bilateral_oophorectomy,
+        pregnant,
+        menarche_age,
+        period_time_since,
+        menstrual_cycle_length,
+        number_births,
+        pleasure_walks_duration,
+        other_exercise_duration,
+        strenuous_sports_duration,
+        heavy_DIY_duration,
+        light_DIY_duration,
+        pleasure_walks_freq_4wks,
+        other_exercise_freq_4wks,
+        strenuous_sports_freq_4wks,
+        heavy_DIY_freq_4wks,
+        light_DIY_freq_4wks
+    )
+)
+
+exclude_vars <- paste0(exclude_vars, collapse = " - ")
+
+# impute all variables except genetic sex using all variables except for the ones listed in exclude_vars
+formula <- as.formula(paste0(". - genetic_sex ~ . - ", exclude_vars))
+
+# create case weights to weight down the contribution of rows with many missings during the imputation
+non_miss <- rowSums(!is.na(dat_final))
+
+# list of seeds
+seeds <- 3456:3460
+
+### all imputations were run in separate bash scripts on the BMRC server
+
+# imputation 1
+imp1 <- missRanger(
+  dat_final,
+  formula = formula,
+  maxiter = 10,
+  pmm.k = 3,
+  verbose = 1,
+  seed = seeds[1],
+  num.trees = 200,
+  returnOOB = TRUE,
+  case.weights = non_miss
+)
+
+# imputation 2
+imp2 <- missRanger(
+  dat_final,
+  formula = formula,
+  maxiter = 10,
+  pmm.k = 3,
+  verbose = 1,
+  seed = seeds[2],
+  num.trees = 200,
+  returnOOB = TRUE,
+  case.weights = non_miss
+)
+
+# imputation 3
+imp3 <- missRanger(
+  dat_final,
+  formula = formula,
+  maxiter = 10,
+  pmm.k = 3,
+  verbose = 1,
+  seed = seeds[3],
+  num.trees = 200,
+  returnOOB = TRUE,
+  case.weights = non_miss
+)
+
+# imputation 4
+imp4 <- missRanger(
+  dat_final,
+  formula = formula,
+  maxiter = 10,
+  pmm.k = 3,
+  verbose = 1,
+  seed = seeds[4],
+  num.trees = 200,
+  returnOOB = TRUE,
+  case.weights = non_miss
+)
+
+# imputation 5
+imp5 <- missRanger(
+  dat_final,
+  formula = formula,
+  maxiter = 10,
+  pmm.k = 3,
+  verbose = 1,
+  seed = seeds[5],
+  num.trees = 200,
+  returnOOB = TRUE,
+  case.weights = non_miss
+)
+
+
+# save
+save(imp1, file = "/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/results/ukb_missRAnger_imp1_jul_19_2023.RData")
+
+save(imp2, file = "/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/results/ukb_missRAnger_imp2_jul_19_2023.RData")
+
+save(imp3, file = "/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/results/ukb_missRAnger_imp3_jul_19_2023.RData")
+
+save(imp4, file = "/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/results/ukb_missRAnger_imp4_jul_19_2023.RData")
+
+save(imp5, file = "/gpfs3/well/charge/users/zaf089/UKB/imputation_UKB/results/ukb_missRAnger_imp5_jul_19_2023.RData")
+```
+
+``` {r OOB_error}
+
+### Checking OOB error rates from multiple imputation
+load(".../UKB/Analysis projects/Proteomics/general data coding/ukb_missRanger_imp1_jul_19_2023.RData")
+load(".../UKB/Analysis projects/Proteomics/general data coding/ukb_missRanger_imp2_jul_19_2023.RData")
+load(".../UKB/Analysis projects/Proteomics/general data coding/ukb_missRanger_imp3_jul_19_2023.RData")
+load(".../UKB/Analysis projects/Proteomics/general data coding/ukb_missRanger_imp4_jul_19_2023.RData")
+load(".../UKB/Analysis projects/Proteomics/general data coding/ukb_missRanger_imp5_jul_19_2023.RData")
+
+imp_data <- list(
+  imp1,
+  imp2,
+  imp3,
+  imp4,
+  imp5
+)
+
+library(tidyverse)
+library(Hmisc)
+library(dplyr)
+
+
+## Retrieve OOB error rates to compare
+error_200t <- lapply(imp_data, function(x) as.data.frame(attr(x, "oob")))
+
+for(j in seq_along(error_200t)) { 
+  colnames(error_200t[[j]]) <- c(paste("Imputation", j))
+  error_200t[[j]]$Exposure <- rownames(error_200t[[j]])
+}
+
+error_200t <-
+  error_200t %>% 
+  reduce(left_join, by = "Exposure")
+
+cols <- c("Exposure",
+          "Imputation 1",
+          "Imputation 2",
+          "Imputation 3",
+          "Imputation 4",
+          "Imputation 5")
+
+error_200t <- error_200t[cols]
+
+
+avg_oob_err_200t <- c(
+  mean(error_200t[ ,2]),
+  mean(error_200t[ ,3]),
+  mean(error_200t[ ,4]),
+  mean(error_200t[ ,5]),
+  mean(error_200t[ ,6])
+)
+
+range_oob_err_200t <- c(
+  range(error_200t[ ,2]),
+  range(error_200t[ ,3]),
+  range(error_200t[ ,4]),
+  range(error_200t[ ,5]),
+  range(error_200t[ ,6])
+)
+
+total_avg_error <- mean(avg_oob_err_200t)
+total_avg_range_high <- mean(range_oob_err_200t[c(2,4,6,8,10)])
+
+total_avg_error
+total_avg_range_high
+```
+
+```{r derived_vars}
+
+make_derived <- function(x) {  
+    
+    # create empty columns for new derived variables
+    x$sleep_hours_categorical <- NA
+    x$education_years <- NA
+    x$hand_grip_strength_left_normalized <- NA
+    x$hand_grip_strength_right_normalized <- NA
+    x$FEV1_standardized <- NA
+    x$FVC_standardized <- NA
+    
+    # sleep hours categorical
+    x$sleep_hours_categorical <- 
+        ifelse(
+            x$sleep_hours < 7, 
+            '<7 hours', 
+            ifelse(
+                x$sleep_hours >= 7 & 
+                    x$sleep_hours < 9, 
+                '7-9 hours',
+                ifelse(
+                    x$sleep_hours >= 9, 
+                    '>9 hours',
+                    NA
+                )
+            )
+        )
+    
+    x$sleep_hours_categorical <- 
+        factor(x$sleep_hours_categorical, 
+               levels = c('<7 hours',
+                          '7-9 hours',
+                          '>9 hours'),
+               ordered = FALSE)
+    
+    x$sleep_hours_categorical <- 
+        relevel(x$sleep_hours_categorical, 
+                ref = '7-9 hours')
+    
+    # education years
+    x$education_years <-
+        ifelse(
+            x$education_college == 'Yes',
+            '20 years',
+            ifelse(
+                x$education_NVQ == 'Yes',
+                '19 years',
+                ifelse(
+                    x$education_other_professional == 'Yes',
+                    '15 years',
+                    ifelse(
+                        x$education_A_levels == 'Yes',
+                        '13 years',
+                        ifelse(
+                            x$education_O_levels == 'Yes' |
+                                x$education_CSEs == 'Yes',
+                            '10 years',
+                            ifelse(
+                                x$education_none == 'Yes',
+                                '7 years',
+                                '7 years'
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    
+    x$education_years <- 
+        factor(x$education_years, 
+               levels = c('7 years',
+                          '10 years',
+                          '13 years',
+                          '15 years',
+                          '19 years',
+                          '20 years'),
+               ordered = TRUE)
+    
+    # hand grip strength normalized by body weight
+    x$hand_grip_strength_left_normalized <- 
+        (x$hand_grip_strength_left / x$weight)
+    
+    x$hand_grip_strength_right_normalized <- 
+        (x$hand_grip_strength_right / x$weight)
+    
+    x$hand_grip_strength_left_normalized <- 
+        as.numeric(x$hand_grip_strength_left_normalized)
+    
+    x$hand_grip_strength_right_normalized <- 
+        as.numeric(x$hand_grip_strength_right_normalized)
+    
+    # lung function standardized by height
+    x$FEV1_standardized <- 
+        # divide by 100 to get m instead of cm
+        (x$FEV1_best / (x$standing_height / 100)^2) 
+    
+    x$FVC_standardized <- 
+        # divide by 100 to get m instead of cm
+        (x$FVC_best / (x$standing_height / 100)^2) 
+    
+    x$FEV1_standardized <- as.numeric(x$FEV1_standardized)
+    x$FVC_standardized <- as.numeric(x$FVC_standardized)
+    
+    # home population density
+    # recode postcode not linkable as NA
+    x$population_density[which(x$population_density == "Postcode not linkable")] <- NA
+    
+    # make factor 
+    x$population_density <- 
+        factor(x$population_density,
+               ordered = FALSE,
+               levels = c("Urban", "Rural"))
+    
+    # relevel
+    x$population_density <- 
+        relevel(x$population_density, ref = "Urban")
+    
+    # average two blood pressure/pulse readings  
+    x$diastolic_bp <- rowMeans(x[,c('diastolic_bp1', 'diastolic_bp2')])
+    x$systolic_bp <- rowMeans(x[,c('systolic_bp1', 'systolic_bp2')])
+    x$pulse_rate <- rowMeans(x[,c('pulse_rate1', 'pulse_rate2')])
+
+    return(x)
+    
+}
+
+# run in datasets
+imp_data <- lapply(imp_data, make_derived)
+```
+
+```{r household_recode}
+
+household_recode <- function(x) {
+    
+    # set hshld_number to NA if accommodation type is NA (care home) or sheltered accommodation 
+    # (it was not asked to these participants)
+    x$hshld_number[which(is.na(x$accommodation_type))] <- 0
+    x$hshld_number[which(x$accommodation_type == "Sheltered accommodation")] <- 0
+    
+    # set household variables to "No" if only 1 person (self) in the house
+    # set household variables to "No" if accommodation type is NA (care home) or sheltered accommodation 
+    # (it was not asked to these participants)
+    x$hshld_partner[which(x$hshld_number == 1)] <- "No"
+    x$hshld_partner[which(is.na(x$accommodation_type))] <- "No"
+    x$hshld_partner[which(x$accommodation_type == "Sheltered accommodation")] <- "No"
+    
+    x$hshld_parents[which(x$hshld_number == 1)] <- "No"
+    x$hshld_parents[which(is.na(x$accommodation_type))] <- "No"
+    x$hshld_parents[which(x$accommodation_type == "Sheltered accommodation")] <- "No"
+    
+    x$hshld_grandparent[which(x$hshld_number == 1)] <- "No"
+    x$hshld_grandparent[which(is.na(x$accommodation_type))] <- "No"
+    x$hshld_grandparent[which(x$accommodation_type == "Sheltered accommodation")] <- "No"
+    
+    x$hshld_grandchild[which(x$hshld_number == 1)] <- "No"
+    x$hshld_grandchild[which(is.na(x$accommodation_type))] <- "No"
+    x$hshld_grandchild[which(x$accommodation_type == "Sheltered accommodation")] <- "No"
+    
+    x$hshld_siblings[which(x$hshld_number == 1)] <- "No"
+    x$hshld_siblings[which(is.na(x$accommodation_type))] <- "No"
+    x$hshld_siblings[which(x$accommodation_type == "Sheltered accommodation")] <- "No"
+
+    return(x)
+}
+
+imp_data <- lapply(imp_data, household_recode)
+```
+
+```{r XWAS_pre_process}
+
+## re-coding variables after checking exposure and mortality crosstabs
+crosstab_recode <- function(x) {
+  
+  # usual_walking_pace
+  x$usual_walking_pace[which(x$usual_walking_pace == "None of the above")] <- NA
+  old_levels <- levels(x$usual_walking_pace)
+  x$usual_walking_pace <- factor(x$usual_walking_pace,
+                                 ordered = TRUE,
+                                 levels = c("Brisk pace",
+                                            "Steady average pace",
+                                            "Slow pace"))
+  
+  # job_satisfaction
+  x$job_satisfaction[which(x$job_satisfaction == "I am not employed")] <- NA
+  old_levels <- levels(x$job_satisfaction)
+  x$job_satisfaction <- 
+    factor(x$job_satisfaction,
+           ordered = TRUE,
+           levels = old_levels[which(old_levels != "I am not employed")])
+  
+  # fast_driving
+  x$fast_driving[which(x$fast_driving == "Do not drive on the motorway")] <- NA
+  old_levels <- levels(x$fast_driving)
+  x$fast_driving <- 
+    factor(x$fast_driving,
+           ordered = TRUE,
+           levels = old_levels[which(old_levels != "Do not drive on the motorway")])
+  
+  # sun_protection_use
+  x$sun_protection_use[which(x$sun_protection_use == "Do not go out in sunshine")] <- NA
+  old_levels <- levels(x$sun_protection_use)
+  x$sun_protection_use <- 
+    factor(x$sun_protection_use,
+           ordered = TRUE,
+           levels = old_levels[which(old_levels != "Do not go out in sunshine")])
+
+  # narcolepsy
+  x$narcolepsy[which(x$narcolepsy == "All of the time")] <- "Often"
+  old_levels <- levels(x$narcolepsy)
+  x$narcolepsy <- 
+    factor(x$narcolepsy,
+           ordered = TRUE,
+           levels = old_levels[which(old_levels != "All of the time")])
+  
+  # bipolar
+  x$bipolar <- NA
+  x$bipolar[which(x$bipolar_MDD == "No Bipolar or Depression")] <- "No"
+  x$bipolar[which(x$bipolar_MDD == "Single Probable major depression episode")] <- "No"
+  x$bipolar[which(x$bipolar_MDD == "Probable Recurrent major depression (moderate)")] <- "No"
+  x$bipolar[which(x$bipolar_MDD == "Probable Recurrent major depression (severe)")] <- "No"
+  x$bipolar[which(x$bipolar_MDD == "Bipolar I Disorder")] <- "Yes"  
+  x$bipolar[which(x$bipolar_MDD == "Bipolar II Disorder")] <- "Yes"
+  x$bipolar <- factor(x$bipolar, ordered = FALSE)
+  x$bipolar <- relevel(x$bipolar, ref = "No")
+  
+  # MDD
+  x$MDD <- NA
+  x$MDD[which(x$bipolar_MDD == "No Bipolar or Depression")] <- "No depression"
+  x$MDD[which(x$bipolar_MDD == "Bipolar I Disorder")] <- "No depression"  
+  x$MDD[which(x$bipolar_MDD == "Bipolar II Disorder")] <- "No depression"
+  x$MDD[which(x$bipolar_MDD == "Single Probable major depression episode")] <- "Single episode"
+  x$MDD[which(x$bipolar_MDD == "Probable Recurrent major depression (moderate)")] <- "Moderate"
+  x$MDD[which(x$bipolar_MDD == "Probable Recurrent major depression (severe)")] <- "Severe"
+  x$MDD <- factor(x$MDD,
+                  ordered = TRUE,
+                  levels = c("No depression",
+                             "Single episode", 
+                             "Moderate", 
+                             "Severe"))
+  
+  # remove old bipolar_MDD var from dataset
+  x <- subset(x, select = -c(bipolar_MDD))
+    
+  # hearing_difficulty
+  x$hearing_difficulty[which(x$hearing_difficulty == "I am completely deaf")] <- "Yes"
+  old_levels <- levels(x$hearing_difficulty)
+  x$hearing_difficulty <- 
+    factor(x$hearing_difficulty,
+           ordered = FALSE,
+           levels = old_levels[which(old_levels != "I am completely deaf")])
+  x$hearing_difficulty <- relevel(x$hearing_difficulty, ref = "No")
+  
+  # own_or_rent
+  x$own_or_rent[which(x$own_or_rent == "None of the above")] <- NA
+  old_levels <- levels(x$own_or_rent)
+  x$own_or_rent <- factor(x$own_or_rent,
+                          ordered = FALSE,
+                          levels = old_levels[which(old_levels != "None of the above")])
+  x$own_or_rent <- 
+    relevel(x$own_or_rent,
+            ref = "Own outright (by you or someone in your household)")
+  
+  # accommodation_type
+  x$accommodation_type[which(x$accommodation_type == "None of the above")] <- NA
+  old_levels <- levels(x$accommodation_type)
+  x$accommodation_type <- 
+    factor(x$accommodation_type,
+           ordered = FALSE,
+           levels = old_levels[which(old_levels %nin% c("None of the above"))])
+  x$accommodation_type <- 
+    relevel(x$accommodation_type, ref = "A house or bungalow")
+  
+  
+  # hair_color
+  x$hair_color[which(x$hair_color == "Other")] <- NA
+  old_levels <- levels(x$hair_color)
+  x$hair_color <- factor(x$hair_color,
+                         ordered = FALSE,
+                         levels = old_levels[which(old_levels != "Other")])
+  x$hair_color <- relevel(x$hair_color, ref = "Light brown")
+  
+ 
+  # home population density
+  x$population_density[which(x$population_density == "Postcode not linkable")] <- NA
+  x$population_density <- factor(x$population_density,
+                                 ordered = FALSE,
+                                 levels = c("Urban", "Rural"))
+  x$population_density <- relevel(x$population_density, ref = "Urban")
+  
+  # diet_change_5yrs
+  x$diet_change_5yrs[which(x$diet_change_5yrs == "Yes, because of illness")] <- NA
+  old_levels <- levels(x$diet_change_5yrs)
+  x$diet_change_5yrs <- factor(x$diet_change_5yrs,
+                         ordered = FALSE,
+                         levels = old_levels[which(old_levels != "Yes, because of illness")])
+  x$diet_change_5yrs <- relevel(x$diet_change_5yrs, ref = "No")
+  
+  return(x)
+  
+}
+
+# run in datasets
+imp_data <- lapply(imp_data, crosstab_recode)
+```
+
+```{r diet_recode}
+
+### Diet type vars ----------------------------------------------------------------
+
+## recode diet type variables to account for nested
+
+
+# check for most common response type
+prop.table(table(imp_data[[1]]$bread_type))
+
+# check for most common response type
+prop.table(table(imp_data[[1]]$cereal_type))
+
+# check for most common response type
+prop.table(table(imp_data[[1]]$coffee_type))
+
+diet_type_recode <- function(x) {
+    
+    ## bread type
+    levels(x$bread_type) <- 
+        c("Wholemeal or wholegrain",
+          "White",
+          "Brown",
+          "Other type of bread",
+          "Never eat bread")
+    x$bread_type[which(x$bread == 0)] <- "Never eat bread"
+    
+    
+    # set reference to most common
+    x$bread_type <- 
+        relevel(x$bread_type, ref = "Wholemeal or wholegrain")
+    
+    
+    ## cereal type
+    levels(x$cereal_type) <- 
+        c("Oat cereal (e.g. Ready Brek, porridge)",
+          "Bran cereal (e.g. All Bran, Branflakes)",
+          "Biscuit cereal (e.g. Weetabix)",
+          "Muesli",
+          "Other (e.g. Cornflakes, Frosties)",
+          "Never eat cereal")
+    x$cereal_type[which(x$cereal == 0)] <- "Never eat cereal"
+    
+    ## set reference to most common
+    x$cereal_type <- 
+        relevel(x$cereal_type, ref = "Other (e.g. Cornflakes, Frosties)")
+    
+    # coffee type
+    levels(x$coffee_type) <- 
+        c("Instant coffee",
+          "Decaffeinated coffee (any type)",
+          "Ground coffee (include espresso, filter etc)",
+          "Other type of coffee",
+          "Never drink coffee")
+    x$coffee_type[which(x$coffee == 0)] <- "Never drink coffee"
+    
+    # set reference to most common
+    x$coffee_type <- 
+        relevel(x$coffee_type, ref = "Instant coffee")
+    
+    return(x)
+    
+}
+
+imp_data <- lapply(imp_data, diet_type_recode)
+
+### Partial fiber score ------------------------------------------------------------------
+
+partial_fiber <- function(x) {
+
+  # 2 grams fiber per fresh fruit serving
+  x$fresh_fruit_fiber <- x$fresh_fruit * 2
+  # 0.5 grams fiber per dried fruit serving
+  x$dried_fruit_fiber <- x$dried_fruit * 0.5
+  # 1 grams fiber per cooked vegetable serving
+  x$cooked_veg_fiber <- x$cooked_veg * 1
+  # 1 grams fiber per serving
+  x$salad_or_raw_veg_fiber <- x$salad_or_raw_veg * 1
+
+  x$bread_fiber <-
+    ifelse(
+      x$bread_type == "Wholemeal or wholegrain",
+      (x$bread / 7) * 1.80,
+      ifelse(
+        x$bread_type == "Brown",
+        (x$bread / 7) * 1.26,
+        ifelse(
+          x$bread_type == "White",
+          (x$bread / 7) * 0.68,
+          ifelse(
+            x$bread_type == "Other type of bread",
+            (x$bread / 7) * 1.25,
+            ifelse(
+              x$bread_type == "Never eat bread",
+              0,
+              0
+            )
+          )
+        )
+      )
+    )
+
+  # divide by 7 to get daily intake
+  x$bread_fiber <- (x$bread_fiber / 7)
+
+  x$cereal_fiber <-
+    ifelse(
+      x$cereal_type == "Bran cereal (e.g. All Bran, Branflakes)",
+      (x$cereal / 7) * 7.16,
+        ifelse(
+        x$cereal_type == "Muesli",
+        (x$cereal / 7) * 4.18,
+        ifelse(
+          x$cereal_type == "Biscuit cereal (e.g. Weetabix)",
+          (x$cereal / 7) * 2.92,
+          ifelse(
+            x$cereal_type == "Oat cereal (e.g. Ready Brek, porridge)",
+            (x$cereal / 7) * 1.92,
+            ifelse(
+              x$cereal_type == "Other (e.g. Cornflakes, Frosties)",
+              (x$cereal / 7) * 0.54,
+              ifelse(
+                x$cereal_type == "Never eat cereal",
+                0,
+                0
+              )
+            )
+          )
+        )
+      )
+    )
+
+  fiber_vars <-
+    c(
+      Cs(
+        fresh_fruit_fiber,
+        dried_fruit_fiber,
+        cooked_veg_fiber,
+        salad_or_raw_veg_fiber,
+        bread_fiber,
+        cereal_fiber
+      )
+    )
+
+  # sum fiber intake across all vars
+  x$partial_fiber_score_raw <-
+    rowSums(
+      x[which(colnames(x) %in% fiber_vars)]
+    )
+
+  # create quintiles
+  x$partial_fiber_score <-
+    cut(x$partial_fiber_score_raw,
+        breaks = c(quantile(x$partial_fiber_score_raw,
+                            probs = seq(0, 1, 1/5),
+                            na.rm = TRUE)),
+        labels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"),
+        include.lowest = TRUE
+    )
+
+  # make factor
+  x$partial_fiber_score <-
+    factor(x$partial_fiber_score,
+           ordered = TRUE,
+           levels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"))
+
+  
+  # create quintiles - bread
+  x$bread_fiber <-
+    cut(x$bread_fiber,
+        breaks = c(quantile(x$bread_fiber,
+                            probs = seq(0, 1, 1/5),
+                            na.rm = TRUE)),
+        labels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"),
+        include.lowest = TRUE
+    )
+
+  # make factor
+  x$bread_fiber <-
+    factor(x$bread_fiber,
+           ordered = TRUE,
+           levels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"))
+
+  
+  # create quintiles
+  x$cereal_fiber <-
+    cut(x$cereal_fiber,
+        breaks = c(quantile(x$cereal_fiber,
+                            probs = seq(0, 1, 1/5),
+                            na.rm = TRUE)),
+        labels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"),
+        include.lowest = TRUE
+    )
+
+  # make factor
+  x$cereal_fiber <-
+    factor(x$cereal_fiber,
+           ordered = TRUE,
+           levels = c("quintile 1", "quintile 2", "quintile 3", "quintile 4", "quintile 5"))
+
+  return(x)
+}
+
+imp_data <- lapply(imp_data, partial_fiber)
+
+# check
+table(imp_data[[1]]$partial_fiber_score, useNA = "always")
+
+### Fruit and veg intake ------------------------------------------------------------------
+
+
+### total fruit intake
+
+total_fruit <- function(x) {
+    
+    # get total number of servings (dried fruit is 2 pieces per serving)
+    x$total_fruit <- x$fresh_fruit + (x$dried_fruit / 2)
+    
+    # cut into categories
+    x$total_fruit <- ifelse(
+        x$total_fruit < 2,
+        "<2 servings",
+        ifelse(
+            x$total_fruit >= 2 & x$total_fruit < 3,
+            "2-2.9 servings",
+            ifelse(
+                x$total_fruit >= 3 & x$total_fruit < 4,
+                "3-3.9 servings",
+                ifelse(
+                    x$total_fruit >= 4,
+                    ">=4 servings",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$total_fruit <- 
+        factor(x$total_fruit,
+               ordered = TRUE,
+               levels = c(
+                   "<2 servings",
+                   "2-2.9 servings",
+                   "3-3.9 servings",
+                   ">=4 servings"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, total_fruit)
+
+# check
+table(imp_data[[1]]$total_fruit, useNA = "always")
+
+
+### total vegetable intake
+
+total_vegetables <- function(x) {
+    
+    # get total number of servings (2 heaped tablespoons per serving)
+    x$total_veg <- (x$cooked_veg / 2) + (x$salad_or_raw_veg / 2)
+    
+    
+    # cut into categories
+    x$total_veg <- ifelse(
+        x$total_veg < 2,
+        "<2 servings",
+        ifelse(
+            x$total_veg >= 2 & x$total_veg < 3,
+            "2-2.9 servings",
+            ifelse(
+                x$total_veg >= 3 & x$total_veg < 4,
+                "3-3.9 servings",
+                ifelse(
+                    x$total_veg >= 4,
+                    ">=4 servings",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$total_veg <- 
+        factor(x$total_veg,
+               ordered = TRUE,
+               levels = c(
+                   "<2 servings",
+                   "2-2.9 servings",
+                   "3-3.9 servings",
+                   ">=4 servings"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, total_vegetables)
+
+# check
+table(imp_data[[1]]$total_veg, useNA = "always")
+
+### Dairy milk intake ------------------------------------------------------------------
+
+### dairy milk intake
+
+dairy_milks <-
+    c(
+        "Semi-skimmed",
+        "Full cream",
+        "Skimmed"
+    )
+
+# cut into categories
+dairy_milk_recode <- function(x) {
+    
+    x$dairy_milk <- ifelse(
+        x$milk_type == "Never/rarely have milk",
+        0,
+        ifelse(
+            x$milk_type %in% dairy_milks,
+            # divide cereal by 7 to get daily intake
+            ((x$cereal / 7) * 100) + 
+                (x$tea * 35) + 
+                (x$coffee * 25),
+            0
+        )
+    )
+    
+    
+    x$dairy_milk <- ifelse(
+        x$milk_type == "Never/rarely have milk" | x$dairy_milk == 0,
+        "Never have milk",
+        ifelse(
+            x$dairy_milk < 150,
+            "<150 mL",
+            ifelse(
+                x$dairy_milk >= 150 & x$dairy_milk < 300,
+                "150-299 mL",
+                ifelse(
+                    x$dairy_milk >= 300,
+                    ">= 300 mL",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$dairy_milk <- 
+        factor(x$dairy_milk,
+               ordered = TRUE,
+               levels = c(
+                   "Never have milk",
+                   "<150 mL",
+                   "150-299 mL",
+                   ">= 300 mL"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, dairy_milk_recode)
+
+# check
+table(imp_data[[1]]$dairy_milk, useNA = "always")
+
+### Red meat ------------------------------------------------------------------
+
+### red meat
+levels(imp_data[[1]]$beef)
+
+red_meat <- function(x) {
+    
+    ## convert to frequency per week
+    
+    # beef
+    x$beef_freq <- ifelse(
+        x$beef == "Never",
+        0,
+        ifelse(
+            x$beef == "Less than once a week",
+            0.5,
+            ifelse(
+                x$beef == "Once a week" ,
+                1,
+                ifelse(
+                    x$beef == "2-4 times a week",
+                    3,
+                    ifelse(
+                        x$beef == "5-6 times a week",
+                        5.5,
+                        ifelse(
+                            x$beef == "Once or more daily" ,
+                            7,
+                            NA
+                        )
+                    )
+                )
+            )
+        )
+    )
+    
+    # lamb
+    x$lamb_freq <- ifelse(
+        x$lamb == "Never",
+        0,
+        ifelse(
+            x$lamb == "Less than once a week",
+            0.5,
+            ifelse(
+                x$lamb == "Once a week" ,
+                1,
+                ifelse(
+                    x$lamb == "2-4 times a week",
+                    3,
+                    ifelse(
+                        x$lamb == "5-6 times a week",
+                        5.5,
+                        ifelse(
+                            x$lamb == "Once or more daily" ,
+                            7,
+                            NA
+                        )
+                    )
+                )
+            )
+        )
+    )
+    
+    # pork
+    x$pork_freq <- ifelse(
+        x$pork == "Never",
+        0,
+        ifelse(
+            x$pork == "Less than once a week",
+            0.5,
+            ifelse(
+                x$pork == "Once a week" ,
+                1,
+                ifelse(
+                    x$pork == "2-4 times a week",
+                    3,
+                    ifelse(
+                        x$pork == "5-6 times a week",
+                        5.5,
+                        ifelse(
+                            x$pork == "Once or more daily" ,
+                            7,
+                            NA
+                        )
+                    )
+                )
+            )
+        )
+    )
+    
+    
+    meat_vars <-
+        c(
+            Cs(
+                beef_freq,
+                lamb_freq,
+                pork_freq
+            )
+        )
+    
+    # sum red meat intake across all vars         
+    x$red_meat_raw <- 
+        rowSums(
+            x[which(colnames(x) %in% meat_vars)]
+        )
+    
+    # cut into categories
+    x$red_meat <- ifelse(
+        x$red_meat_raw < 1,
+        "<1 time per week",
+        ifelse(
+            x$red_meat_raw >= 1 & x$red_meat_raw < 2,
+            "1-1.9 times per week",
+            ifelse(
+                x$red_meat_raw >= 2 & x$red_meat_raw < 3,
+                "2-2.9 times per week",
+                ifelse(
+                    x$red_meat_raw >=3,
+                    ">=3 times per week",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$red_meat <- 
+        factor(x$red_meat, 
+               ordered = TRUE, 
+               levels = c("<1 time per week", 
+                          "1-1.9 times per week", 
+                          "2-2.9 times per week", 
+                          ">=3 times per week")) 
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, red_meat)
+
+# check
+summary(imp_data[[1]]$red_meat_raw)
+table(imp_data[[1]]$red_meat, useNA = "always")
+
+
+## consumption recode
+
+### Intake vars recode ------------------------------------------------------------------
+
+
+quantile(imp_data[[1]]$cereal)
+quantile(imp_data[[1]]$bread)
+
+intake_vars <- function(x) {
+    
+    # oily fish
+    levels(x$oily_fish) <- c(levels(x$oily_fish), ">=2 times per week")
+    x$oily_fish[which(x$oily_fish == "Once or more daily")] <- ">=2 times per week"
+    x$oily_fish[which(x$oily_fish == "5-6 times a week")] <- ">=2 times per week"
+    x$oily_fish[which(x$oily_fish == "2-4 times a week")] <- ">=2 times per week"
+    x$oily_fish <- factor(x$oily_fish,
+                                  ordered = TRUE,
+                                  levels = c("Never",
+                                             "Less than once a week",
+                                             "Once a week",
+                                             ">=2 times per week"))
+
+    # oily fish
+    levels(x$non_oily_fish) <- c(levels(x$non_oily_fish), ">=2 times per week")
+    x$non_oily_fish[which(x$non_oily_fish == "Once or more daily")] <- ">=2 times per week"
+    x$non_oily_fish[which(x$non_oily_fish == "5-6 times a week")] <- ">=2 times per week"
+    x$non_oily_fish[which(x$non_oily_fish == "2-4 times a week")] <- ">=2 times per week"
+    x$non_oily_fish <- factor(x$non_oily_fish,
+                                  ordered = TRUE,
+                                  levels = c("Never",
+                                             "Less than once a week",
+                                             "Once a week",
+                                             ">=2 times per week"))
+
+
+    # processed meat
+    levels(x$processed_meat) <- c(levels(x$processed_meat), ">=2 times per week")
+    x$processed_meat[which(x$processed_meat == "Once or more daily")] <- ">=2 times per week"
+    x$processed_meat[which(x$processed_meat == "5-6 times a week")] <- ">=2 times per week"
+    x$processed_meat[which(x$processed_meat == "2-4 times a week")] <- ">=2 times per week"
+    x$processed_meat <- factor(x$processed_meat,
+                                  ordered = TRUE,
+                                  levels = c("Never",
+                                             "Less than once a week",
+                                             "Once a week",
+                                             ">=2 times per week"))
+    
+    # poultry
+    levels(x$poultry) <- c(levels(x$poultry), ">=2 times per week")
+    x$poultry[which(x$poultry == "Once or more daily")] <- ">=2 times per week"
+    x$poultry[which(x$poultry == "5-6 times a week")] <- ">=2 times per week"
+    x$poultry[which(x$poultry == "2-4 times a week")] <- ">=2 times per week"
+    x$poultry <- factor(x$poultry,
+                                ordered = TRUE,
+                                levels = c("Never",
+                                           "Less than once a week",
+                                           "Once a week",
+                                           ">=2 times per week"))
+    
+    # cheese
+    levels(x$cheese) <- c(levels(x$cheese), "<1 time per week", ">=5 times per week")
+    x$cheese[which(x$cheese == "Once or more daily")] <- ">=5 times per week"
+    x$cheese[which(x$cheese == "5-6 times a week")] <- ">=5 times per week"
+    x$cheese[which(x$cheese == "Never")] <- "<1 time per week"
+    x$cheese[which(x$cheese == "Less than once a week")] <- "<1 time per week"
+    x$cheese <- factor(x$cheese,
+                                  ordered = TRUE,
+                                  levels = c("<1 time per week",
+                                             "Once a week",
+                                             "2-4 times a week",
+                                             ">=5 times per week"))
+    
+    # coffee
+    x$coffee <- ifelse(
+        x$coffee == 0,
+        "0 cups/day",
+        ifelse(
+            x$coffee > 0 & x$coffee < 2,
+            "0.5-1.9 cups/day",
+            ifelse(
+                x$coffee >= 2 & x$coffee < 3,
+                "2-2.9 cups/day",
+                ifelse(
+                    x$coffee >= 3,
+                    ">=3 cups/day",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$coffee <- 
+        factor(x$coffee,
+               ordered = TRUE,
+               levels = c(
+                   "0 cups/day",
+                   "0.5-1.9 cups/day",
+                   "2-2.9 cups/day",
+                   ">=3 cups/day"
+               ))
+    
+    # tea
+    x$tea <- ifelse(
+        x$tea < 2,
+        "<2 cups/day",
+        ifelse(
+            x$tea >= 2 & x$tea < 4,
+            "2-3.9 cups/day",
+            ifelse(
+                x$tea >= 4 & x$tea < 6,
+                "4-5.9 cups/day",
+                ifelse(
+                    x$tea >= 6,
+                    ">=6 cups/day",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$tea <- 
+        factor(x$tea,
+               ordered = TRUE,
+               levels = c(
+                   "<2 cups/day",
+                   "2-3.9 cups/day",
+                   "4-5.9 cups/day",
+                   ">=6 cups/day"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, intake_vars)
+
+table(imp_data[[1]]$oily_fish, useNA = "always")
+table(imp_data[[1]]$non_oily_fish, useNA = "always")
+table(imp_data[[1]]$processed_meat, useNA = "always")
+table(imp_data[[1]]$cheese, useNA = "always")
+table(imp_data[[1]]$coffee, useNA = "always")
+table(imp_data[[1]]$tea, useNA = "always")
+table(imp_data[[1]]$cereal, useNA = "always")
+table(imp_data[[1]]$bread, useNA = "always")
+
+
+### Bread and cereal ------------------------------------------------------------------
+
+### recode bread and cereal into quartiles
+
+# check quartiles
+quantile(imp_data[[1]]$cereal)
+quantile(imp_data[[1]]$bread)
+quantile(imp_data[[1]]$water)
+
+bread_cereal <- function(x) {
+    
+    # cereal
+    x$cereal <- ifelse(
+        x$cereal < 2,
+        "<2 bowls/week",
+        ifelse(
+            x$cereal >= 2 & x$cereal < 5,
+            "2-4.9 bowls/week",
+            ifelse(
+                x$cereal >= 5 & x$cereal < 7,
+                "5-6.9 bowls/week",
+                ifelse(
+                    x$cereal >= 7,
+                    ">=7 bowls/week",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$cereal <- 
+        factor(x$cereal,
+               ordered = TRUE,
+               levels = c(
+                   "<2 bowls/week",
+                   "2-4.9 bowls/week",
+                   "5-6.9 bowls/week",
+                   ">=7 bowls/week"
+               ))
+    
+    # bread
+    x$bread <- ifelse(
+        x$bread < 8,
+        "<8 slices/week",
+        ifelse(
+            x$bread >= 8 & x$bread < 14,
+            "8-13.9 slices/week",
+            ifelse(
+                x$bread >= 14 & x$bread < 20,
+                "14-19.9 slices/week",
+                ifelse(
+                    x$bread >= 20,
+                    ">=20 slices/week",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$bread <- 
+        factor(x$bread,
+               ordered = TRUE,
+               levels = c(
+                   "<8 slices/week",
+                   "8-13.9 slices/week",
+                   "14-19.9 slices/week",
+                   ">=20 slices/week"
+               ))
+    
+    # water
+    x$water <- ifelse(
+        x$water < 1,
+        "<1 glass/day",
+        ifelse(
+            x$water >= 1 & x$water < 2,
+            "1-1.9 glass/day",
+            ifelse(
+                x$water >= 2 & x$water < 3,
+                "2-2.9 glass/day",
+                ifelse(
+                    x$water >= 3,
+                    ">=3 glass/day",
+                    NA
+                )
+            )
+        )
+    )
+    
+    # make factor
+    x$water <- 
+        factor(x$water,
+               ordered = TRUE,
+               levels = c(
+                   "<1 glass/day",
+                   "1-1.9 glass/day",
+                   "2-2.9 glass/day",
+                   ">=3 glass/day"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, bread_cereal)
+
+table(imp_data[[1]]$bread, useNA = "always")
+table(imp_data[[1]]$cereal, useNA = "always")
+table(imp_data[[1]]$water, useNA = "always")
+
+
+### Alcohol ------------------------------------------------------------------
+
+alcohol_recode <- function(x) {
+    
+    # recode to nominal
+    x$alcohol_freq <- factor(x$alcohol_freq, ordered = FALSE)
+    x$alcohol_freq <- relevel(x$alcohol_freq, ref = "Never")
+    # remove previous drinkers from reference category
+    x$alcohol_freq[which(x$alcohol_status == "Previous")] <- NA
+
+    # recode to only current drinkers
+    x$alcohol_freq_old <- x$alcohol_freq
+    old_levels <- levels(x$alcohol_freq)
+    x$alcohol_freq <- 
+        factor(x$alcohol_freq,
+               ordered = FALSE,
+               levels = old_levels[old_levels %nin% c("Never", "Special occasions only")])
+    x$alcohol_freq <- relevel(x$alcohol_freq, ref = "One to three times a month")
+    
+    # remove previous drinkers from reference category
+    x$alcohol_freq[which(x$alcohol_status %in% c("Never", "Previous"))] <- NA
+    x$alcohol_freq[which(x$alcohol_freq_old == "Special occasions only")] <- NA
+    
+    # make new dichotomous alcohol status
+    x$alcohol_status_old <- x$alcohol_status
+    # remove previous drinkers from reference category
+    x$alcohol_status[which(x$alcohol_status == "Previous")] <- NA
+    x$alcohol_status <- factor(x$alcohol_status, ordered = FALSE, levels = c("Never", "Current"))
+    x$alcohol_status <- relevel(x$alcohol_status, ref = "Never")
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, alcohol_recode)
+
+# remove extra vars made
+remove_vars <- function(x) {
+    
+    x <- subset(
+        x, 
+        select = -c(
+            fresh_fruit_fiber,
+            dried_fruit_fiber,
+            cooked_veg_fiber,
+            salad_or_raw_veg_fiber,
+            partial_fiber_score_raw,
+            beef_freq,
+            lamb_freq,
+            pork_freq
+        )
+    )
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, remove_vars)
+
+```
+
+```{r physical_activity_recode}
+
+### make leisure time physical activity variable
+LTPA_recode <- function(x) {
+    
+    x$pleasure_walks_duration[which(x$pleasure_walks_4wks == "No")] <- NA
+    x$other_exercise_duration[which(x$other_exercise_4wks == "No")] <- NA
+    x$strenuous_sports_duration[which(x$strenuous_sports_4wks == "No")] <- NA
+    x$heavy_DIY_duration[which(x$heavy_DIY_4wks == "No")] <- NA
+    x$light_DIY_duration[which(x$light_DIY_4wks == "No")] <- NA
+    
+    x$pleasure_walks_freq_4wks[which(x$pleasure_walks_4wks == "No")] <- NA
+    x$other_exercise_freq_4wks[which(x$other_exercise_4wks == "No")] <- NA
+    x$strenuous_sports_freq_4wks[which(x$strenuous_sports_4wks == "No")] <- NA
+    x$heavy_DIY_freq_4wks[which(x$heavy_DIY_4wks == "No")] <- NA
+    x$light_DIY_freq_4wks[which(x$light_DIY_4wks == "No")] <- NA
+    
+    
+    # pleasure walks - mins per activity session
+    x$walk_mins <- NA
+    x$walk_mins[which(x$pleasure_walks_duration == "Less than 15 minutes")] <- 7.5
+    x$walk_mins[which(x$pleasure_walks_duration == "Between 15 and 30 minutes")] <- 22.5
+    x$walk_mins[which(x$pleasure_walks_duration == "Between 30 minutes and 1 hour")] <- 45
+    x$walk_mins[which(x$pleasure_walks_duration == "Between 1 and 1.5 hours")] <- 75
+    x$walk_mins[which(x$pleasure_walks_duration == "Between 1.5 and 2 hours")] <- 105
+    x$walk_mins[which(x$pleasure_walks_duration == "Between 2 and 3 hours")] <- 150
+    x$walk_mins[which(x$pleasure_walks_duration == "Over 3 hours")] <- 180
+    x$walk_mins[which(is.na(x$pleasure_walks_duration))] <- 0
+    
+    # numeric days per week of activity (convert from # per every 4 weeks)
+    x$walk_days <- NA
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "Once in the last 4 weeks")] <- 0.25
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "2-3 times in the last 4 weeks")] <- 0.625
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "Once a week")] <- 1
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "2-3 times a week")] <- 2.5
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "4-5 times a week")] <- 4.5
+    x$walk_days[which(x$pleasure_walks_freq_4wks == "Every day")] <- 7
+    x$walk_days[which(is.na(x$pleasure_walks_freq_4wks))] <- 0
+    
+    # fmultiply mins x week x 3.3 METs
+    x$walks_MET_week <- (x$walk_mins * x$walk_days) * 3.3
+    
+    # strenuous sports - mins per activity session
+    x$sports_mins <- NA
+    x$sports_mins[which(x$strenuous_sports_duration == "Less than 15 minutes")] <- 7.5
+    x$sports_mins[which(x$strenuous_sports_duration == "Between 15 and 30 minutes")] <- 22.5
+    x$sports_mins[which(x$strenuous_sports_duration == "Between 30 minutes and 1 hour")] <- 45
+    x$sports_mins[which(x$strenuous_sports_duration == "Between 1 and 1.5 hours")] <- 75
+    x$sports_mins[which(x$strenuous_sports_duration == "Between 1.5 and 2 hours")] <- 105
+    x$sports_mins[which(x$strenuous_sports_duration == "Between 2 and 3 hours")] <- 150
+    x$sports_mins[which(x$strenuous_sports_duration == "Over 3 hours")] <- 180
+    x$sports_mins[which(is.na(x$strenuous_sports_duration))] <- 0
+    
+    # numeric days per week of activity (convert from # per every 4 weeks)
+    x$sports_days <- NA
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "Once in the last 4 weeks")] <- 0.25
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "2-3 times in the last 4 weeks")] <- 0.625
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "Once a week")] <- 1
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "2-3 times a week")] <- 2.5
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "4-5 times a week")] <- 4.5
+    x$sports_days[which(x$strenuous_sports_freq_4wks == "Every day")] <- 7
+    x$sports_days[which(is.na(x$strenuous_sports_freq_4wks))] <- 0
+    
+    # fmultiply mins x week x 8 METs
+    x$sports_MET_week <- (x$sports_mins * x$sports_days) * 8
+    
+    # other exercise - mins per activity session
+    x$other_mins <- NA
+    x$other_mins[which(x$other_exercise_duration == "Less than 15 minutes")] <- 7.5
+    x$other_mins[which(x$other_exercise_duration == "Between 15 and 30 minutes")] <- 22.5
+    x$other_mins[which(x$other_exercise_duration == "Between 30 minutes and 1 hour")] <- 45
+    x$other_mins[which(x$other_exercise_duration == "Between 1 and 1.5 hours")] <- 75
+    x$other_mins[which(x$other_exercise_duration == "Between 1.5 and 2 hours")] <- 105
+    x$other_mins[which(x$other_exercise_duration == "Between 2 and 3 hours")] <- 150
+    x$other_mins[which(x$other_exercise_duration == "Over 3 hours")] <- 180
+    x$other_mins[which(is.na(x$other_exercise_duration))] <- 0
+    
+    # numeric days per week of activity (convert from # per every 4 weeks)
+    x$other_days <- NA
+    x$other_days[which(x$other_exercise_freq_4wks == "Once in the last 4 weeks")] <- 0.25
+    x$other_days[which(x$other_exercise_freq_4wks == "2-3 times in the last 4 weeks")] <- 0.625
+    x$other_days[which(x$other_exercise_freq_4wks == "Once a week")] <- 1
+    x$other_days[which(x$other_exercise_freq_4wks == "2-3 times a week")] <- 2.5
+    x$other_days[which(x$other_exercise_freq_4wks == "4-5 times a week")] <- 4.5
+    x$other_days[which(x$other_exercise_freq_4wks == "Every day")] <- 7
+    x$other_days[which(is.na(x$other_exercise_freq_4wks))] <- 0
+    
+    # fmultiply mins x week x 4.5 METs
+    x$other_MET_week <- (x$other_mins * x$other_days) * 4.5
+    
+    # heavy DIY - mins per activity session
+    x$heavy_DIY_mins <- NA
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Less than 15 minutes")] <- 7.5
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Between 15 and 30 minutes")] <- 22.5
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Between 30 minutes and 1 hour")] <- 45
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Between 1 and 1.5 hours")] <- 75
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Between 1.5 and 2 hours")] <- 105
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Between 2 and 3 hours")] <- 150
+    x$heavy_DIY_mins[which(x$heavy_DIY_duration == "Over 3 hours")] <- 180
+    x$heavy_DIY_mins[which(is.na(x$heavy_DIY_duration))] <- 0
+    
+    # numeric days per week of activity (convert from # per every 4 weeks)
+    x$heavy_DIY_days <- NA
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "Once in the last 4 weeks")] <- 0.25
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "2-3 times in the last 4 weeks")] <- 0.625
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "Once a week")] <- 1
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "2-3 times a week")] <- 2.5
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "4-5 times a week")] <- 4.5
+    x$heavy_DIY_days[which(x$heavy_DIY_freq_4wks == "Every day")] <- 7
+    x$heavy_DIY_days[which(is.na(x$heavy_DIY_freq_4wks))] <- 0
+    
+    # fmultiply mins x week x 4.5 METs
+    x$heavy_DIY_MET_week <- (x$heavy_DIY_mins * x$heavy_DIY_days) * 4.5
+    
+    # light DIY - mins per activity session
+    x$light_DIY_mins <- NA
+    x$light_DIY_mins[which(x$light_DIY_duration == "Less than 15 minutes")] <- 7.5
+    x$light_DIY_mins[which(x$light_DIY_duration == "Between 15 and 30 minutes")] <- 22.5
+    x$light_DIY_mins[which(x$light_DIY_duration == "Between 30 minutes and 1 hour")] <- 45
+    x$light_DIY_mins[which(x$light_DIY_duration == "Between 1 and 1.5 hours")] <- 75
+    x$light_DIY_mins[which(x$light_DIY_duration == "Between 1.5 and 2 hours")] <- 105
+    x$light_DIY_mins[which(x$light_DIY_duration == "Between 2 and 3 hours")] <- 150
+    x$light_DIY_mins[which(x$light_DIY_duration == "Over 3 hours")] <- 180
+    x$light_DIY_mins[which(is.na(x$light_DIY_duration))] <- 0
+    
+    # numeric days per week of activity (convert from # per every 4 weeks)
+    x$light_DIY_days <- NA
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "Once in the last 4 weeks")] <- 0.25
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "2-3 times in the last 4 weeks")] <- 0.625
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "Once a week")] <- 1
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "2-3 times a week")] <- 2.5
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "4-5 times a week")] <- 4.5
+    x$light_DIY_days[which(x$light_DIY_freq_4wks == "Every day")] <- 7
+    x$light_DIY_days[which(is.na(x$light_DIY_freq_4wks))] <- 0
+    
+    # fmultiply mins x week x 2.25 METs
+    x$light_DIY_MET_week <- (x$light_DIY_mins * x$light_DIY_days) * 2.25
+    
+    # list of vars used to make summary
+    ltpa_vars <- 
+        c(
+            Cs(
+                walks_MET_week,
+                sports_MET_week,
+                other_MET_week,
+                heavy_DIY_MET_week,
+                light_DIY_MET_week
+            )
+        )
+    
+    # make summary
+    x$LTPA_raw <- 
+        rowSums(
+            x[which(colnames(x) %in% ltpa_vars)]
+        )
+    
+    # make categorical
+    x$LTPA <- NA
+    x$LTPA[which(x$LTPA_raw >= 3000)] <- "high"
+    x$LTPA[which(x$LTPA_raw >= 600 & x$LTPA_raw < 3000)] <- "moderate"
+    x$LTPA[which(is.na(x$LTPA))] <- "low"
+    
+    # class as factor
+    x$LTPA <- factor(x$LTPA,
+                     ordered = TRUE,
+                     levels = c("low", "moderate", "high"))
+  
+    return(x)
+}
+
+imp_data <- lapply(imp_data, LTPA_recode)
+
+table(imp_data[[1]]$IPAQ_activity_group, useNA = "always")
+table(imp_data[[1]]$LTPA, useNA = "always")
+with(imp_data[[1]], table(IPAQ_activity_group, LTPA))
+
+summary(imp_data[[1]]$LTPA_raw)
+summary(imp_data[[1]]$walks_MET_week)
+summary(imp_data[[1]]$other_days)
+
+
+### occupational physical activity summary
+OPA_recode <- function(x) {
+    
+    # minutes per week of employment
+    x$employment_mins <- (x$employment_hours * 60)
+    
+    # heavy manual work - use 2/3 and 1/3 because those are the values if you rescale to be between 0-1
+    # this assumes that the responses never to always are ordinal
+    x$hman_mins <- 
+        ifelse(
+            x$employment_heavy_manual == "Always",
+            x$employment_mins,
+            ifelse(
+                x$employment_heavy_manual == "Usually",
+                x$employment_mins*(2/3),
+                ifelse(
+                    x$employment_heavy_manual == "Sometimes",
+                    x$employment_mins*(1/3),
+                    ifelse(
+                        x$employment_heavy_manual == "Never/rarely",
+                        0,
+                        NA
+                    )
+                )
+            )
+        )
+
+    # set all those who are not employed to 0
+    x$hman_mins[which(x$employed == "No")] <- 0
+    # multiply mins/week x 4.5 METs 
+    x$hman_mins <- x$hman_mins * 4.5
+    
+    # employment standing
+    x$employment_standing_mins <- 
+        ifelse(
+            x$employment_standing == "Always",
+            x$employment_mins,
+            ifelse(
+                x$employment_standing == "Usually",
+                x$employment_mins*(2/3),
+                ifelse(
+                    x$employment_standing == "Sometimes",
+                    x$employment_mins*(1/3),
+                    ifelse(
+                        x$employment_standing == "Never/rarely",
+                        0,
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # set all those who are not employed to 0
+    x$employment_standing_mins[which(x$employed == "No")] <- 0
+    # multiply mins/week x 2.25 METs 
+    x$employment_standing_mins <- x$employment_standing_mins * 2.25
+    
+    # list of vars used to make OPA summary
+    opa_vars <- 
+        c(
+            Cs(
+                hman_mins,
+                employment_standing_mins
+            )
+        )
+    
+    # make OPA summary 
+    x$OPA_raw <- 
+        rowSums(
+            x[which(colnames(x) %in% opa_vars)],
+            # na.rm will set all people with NA in both cols to 0
+            na.rm = TRUE
+        )
+    
+    # make categorical
+    x$OPA <- NA
+    x$OPA[which(x$OPA_raw >= 3000)] <- "high"
+    x$OPA[which(x$OPA_raw >= 600 & x$OPA_raw < 3000)] <- "moderate"
+    x$OPA[which(x$OPA_raw >= 0 & x$OPA_raw < 600)] <- "low"
+    
+    # class as factor
+    x$OPA <- factor(x$OPA,
+                    ordered = TRUE,
+                    levels = c("low", "moderate", "high"))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, OPA_recode)
+
+table(imp_data[[1]]$IPAQ_activity_group, useNA = "always")
+table(imp_data[[1]]$LTPA, useNA = "always")
+table(imp_data[[1]]$OPA, useNA = "always")
+
+summary(imp_data[[1]]$OPA_raw)
+summary(imp_data[[1]]$hman_mins)
+summary(imp_data[[1]]$employment_standing_mins)
+
+
+### sedentary behavior variable
+
+# check tertile distribution
+quantile(imp_data[[1]]$sedentary_raw, na.rm = TRUE, probs = seq(0,1,1/3))
+quantile(imp_data[[1]]$sedentary_raw, na.rm = TRUE, probs = seq(0,1,1/3))
+
+sed_vars <- 
+  c(
+    Cs(
+      TV_time,
+      computer_time,
+      driving_time
+    )
+  )
+
+
+sedentary_recode <- function(x) {
+    
+    x$sedentary_raw <- 
+        rowSums(
+            x[which(colnames(x) %in% sed_vars)]
+        )
+    
+    x$sedentary_raw[which(x$sedentary_raw > 24)] <- NA
+    # x$sedentary_raw[which(x$sedentary_raw > 16)] <- 16
+    
+    x$sedentary <- NA
+    x$sedentary[which(x$sedentary_raw < 4)] <- "<4 hours"
+    x$sedentary[which(x$sedentary_raw >= 4 & x$sedentary_raw < 6)] <- "4-5.9 hours"
+    x$sedentary[which(x$sedentary_raw >= 6)] <- ">=6 hours"
+    
+    x$sedentary <- 
+        factor(x$sedentary,
+               ordered = TRUE,
+               levels = c("<4 hours",
+                          "4-5.9 hours",
+                          ">=6 hours"
+               ))
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, sedentary_recode)
+
+table(imp_data[[1]]$sedentary, useNA = "always")
+with(imp_data[[1]], table(sedentary, IPAQ_activity_group))
+
+# remove intermediate variables created
+remove_vars <- function(x) {
+    
+  x <- subset(
+      x, 
+      select = -c(
+          walks_MET_week,
+          walk_mins,
+          walk_days,
+          sports_MET_week,
+          sports_mins,
+          sports_days,
+          other_MET_week,
+          other_mins,
+          other_days,
+          heavy_DIY_MET_week,
+          heavy_DIY_mins,
+          heavy_DIY_days,
+          light_DIY_MET_week,
+          light_DIY_mins,
+          light_DIY_days
+      ))
+  
+  return(x)
+}
+
+imp_data <- lapply(imp_data, remove_vars)
+
+```
+
+```{r merge_medications}
+
+# medication intake information was asked separately in men and women:
+## https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=6177
+## https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=6153
+
+# recombine into single variable
+merge_meds <- function(x) {
+    
+    # recode
+    x$insulin <- 
+        ifelse(
+            x$sex == "Male" & x$insulin == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$insulin == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$insulin_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$insulin_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$insulin <- factor(x$insulin,
+                        ordered = FALSE,
+                        levels = c("No", "Yes"))
+    
+    # set reference
+    x$insulin <- relevel(x$insulin, 
+                         ref = "No")
+    
+    # recode
+    x$blood_pressure_meds <- 
+        ifelse(
+            x$sex == "Male" & x$blood_pressure_meds == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$blood_pressure_meds == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$blood_pressure_meds_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$blood_pressure_meds_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$blood_pressure_meds <- factor(x$blood_pressure_meds,
+                                    ordered = FALSE,
+                                    levels = c("No", "Yes"))
+    
+    # set reference
+    x$blood_pressure_meds <- relevel(x$blood_pressure_meds, 
+                                     ref = "No")
+    
+    # recode
+    x$cholesterol_meds <- 
+        ifelse(
+            x$sex == "Male" & x$cholesterol_meds == "Yes",
+            "Yes",
+            ifelse(
+                x$sex == "Male" & x$cholesterol_meds == "No",
+                "No",
+                ifelse(
+                    x$sex == "Female" & x$cholesterol_meds_v2 == "Yes",
+                    "Yes",
+                    ifelse(
+                        x$sex == "Female" & x$cholesterol_meds_v2 == "No",
+                        "No",
+                        NA
+                    )
+                )
+            )
+        )
+    
+    # code as factor
+    x$cholesterol_meds <- factor(x$cholesterol_meds,
+                                 ordered = FALSE,
+                                 levels = c("No", "Yes"))
+    
+    # set reference
+    x$cholesterol_meds <- relevel(x$cholesterol_meds, 
+                                  ref = "No")
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, merge_meds)
+
+```
+
+```{r PNA_recode}
+
+# load unimputed to re-map "prefer not to answer" (PNA) responses
+load(".../UKB/Datasets/4. Categorized raw datasets/ukb_all_exposures_june_22_2023.RData")
+
+# find row indexes for PNA for all variables
+index_cols <- colnames(dat)[which(colnames(dat) != "recruitment_date")]
+index <- sapply(dat[index_cols], function(x) which(x == "Prefer not to answer" | x == "-3"))
+
+# map to eids
+index_eid <- as.list(seq_along(index))
+names(index_eid) <- names(index)
+for (k in seq_along(index)) {
+    index_eid[[k]] <- dat$eid[index[[k]]]
+}
+
+# function to re-map PNAs in imputed data and set to NA
+PNA_remove <- function(x) {
+    
+    # recode newly derived or composite variables
+    x$population_density[which(x$eid %in% index_eid$home_population_density)] <- NA
+    x$alcohol_freq[which(x$eid %in% index_eid$alcohol_freq)] <- NA
+    x$education_years[which(x$eid %in% index_eid$education_years.0.0)] <- NA
+    x$dairy_milk[which(x$eid %in% index_eid$milk_type | 
+                           x$eid %in% index_eid$cereal | 
+                           x$eid %in% index_eid$tea | 
+                           x$eid %in% index_eid$coffee)] <- NA
+    x$partial_fiber_score[which(x$eid %in% index_eid$dried_fruit |
+                                    x$eid %in% index_eid$fresh_fruit | 
+                                    x$eid %in% index_eid$cooked_veg |
+                                    x$eid %in% index_eid$salad_or_raw_veg | 
+                                    x$eid %in% index_eid$bread_type |
+                                    x$eid %in% index_eid$bread |
+                                    x$eid %in% index_eid$cereal |
+                                    x$eid %in% index_eid$cereal_type)] <- NA
+    x$bread_fiber[which(x$eid %in% index_eid$bread_type |
+                            x$eid %in% index_eid$bread)] <- NA
+    x$cereal_fiber[which(x$eid %in% index_eid$cereal_type |
+                             x$eid %in% index_eid$cereal)] <- NA
+    x$red_meat[which(x$eid %in% index_eid$beef |
+                         x$eid %in% index_eid$pork | 
+                         x$eid %in% index_eid$lamb)] <- NA
+    x$total_fruit[which(x$eid %in% index_eid$dried_fruit |
+                            x$eid %in% index_eid$fresh_fruit)] <- NA
+    x$total_veg[which(x$eid %in% index_eid$salad_or_raw_veg |
+                          x$eid %in% index_eid$cooked_veg)] <- NA
+    x$LTPA[which(x$eid %in% index_eid$physical_activity_type.0.0 |
+                     x$eid %in% index_eid$pleasure_walks_duration | 
+                     x$eid %in% index_eid$pleasure_walks_freq_4wks | 
+                     x$eid %in% index_eid$strenuous_sports_duration |
+                     x$eid %in% index_eid$strenuous_sports_freq_4wks | 
+                     x$eid %in% index_eid$other_exercise_duration | 
+                     x$eid %in% index_eid$other_exercise_freq_4wks |
+                     x$eid %in% index_eid$heavy_DIY_duration |
+                     x$eid %in% index_eid$heavy_DIY_freq_4wks | 
+                     x$eid %in% index_eid$light_DIY_duration | 
+                     x$eid %in% index_eid$light_DIY_freq_4wks)] <- NA
+    x$OPA[which(x$eid %in% index_eid$employment.0.0 |
+                    x$eid %in% index_eid$employment_heavy_manual | 
+                    x$eid %in% index_eid$employment_standing | 
+                    x$eid %in% index_eid$employment_hours)] <- NA
+
+    x$sleep_hours_categorical[which(x$eid %in% index_eid$sleep_hours)] <- NA
+    
+    x$hshld_parents[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+    x$hshld_partner[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+    x$hshld_siblings[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+    x$hshld_children[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+    x$hshld_grandparent[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+    x$hshld_grandchild[which(x$eid %in% index_eid$hshld_relations.0.0)] <- NA
+   
+    x$gas_hob_heat[which(x$eid %in% index_eid$gas_fuel_heat.0.0)] <- NA
+    x$gas_fire_heat[which(x$eid %in% index_eid$gas_fuel_heat.0.0)] <- NA
+    x$open_fire_heat[which(x$eid %in% index_eid$gas_fuel_heat.0.0)] <- NA
+    
+    x$gas_central_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    x$electric_storage_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    x$oil_central_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    x$portable_gas_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    x$solid_fuel_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    x$open_fire_no_central_heat[which(x$eid %in% index_eid$heating_type.0.0)] <- NA
+    
+    x$employed[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$retired[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$home_maker[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$unemployed_disability[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$unemployed[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$volunteer[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    x$student[which(x$eid %in% index_eid$employment.0.0)] <- NA
+    
+    x$attendance_allowance[which(x$eid %in% index_eid$public_assistance.0.)] <- NA
+    x$disability_allowance[which(x$eid %in% index_eid$public_assistance.0.)] <- NA
+    x$blue_badge[which(x$eid %in% index_eid$public_assistance.0.)] <- NA
+   
+    x$gym[which(x$eid %in% index_eid$social_activity.0.0)] <- NA
+    x$pub[which(x$eid %in% index_eid$social_activity.0.0)] <- NA
+    x$religious_group[which(x$eid %in% index_eid$social_activity.0.0)] <- NA
+    x$adult_education[which(x$eid %in% index_eid$social_activity.0.0)] <- NA
+
+    x$heart_attack_diagnosis[which(x$eid %in% index_eid$heart_diagnosis.0.0)] <- NA
+    x$stroke_diagnosis[which(x$eid %in% index_eid$heart_diagnosis.0.0)] <- NA
+    x$angina_diagnosis[which(x$eid %in% index_eid$heart_diagnosis.0.0)] <- NA
+    x$high_blood_pressure_diagnosis[which(x$eid %in% index_eid$heart_diagnosis.0.0)] <- NA
+
+    x$asthma_diagnosis[which(x$eid %in% index_eid$other_diagnosis.0.0)] <- NA
+    x$DVT_diagnosis[which(x$eid %in% index_eid$other_diagnosis.0.0)] <- NA
+    x$hayfever_diagnosis[which(x$eid %in% index_eid$other_diagnosis.0.0)] <- NA
+    x$bronchitis_emphysema_diagnosis[which(x$eid %in% index_eid$other_diagnosis.0.0)] <- NA
+    x$blood_clot_lung_diagnosis[which(x$eid %in% index_eid$other_diagnosis.0.0)] <- NA
+
+    x$cholesterol_meds[which(x$eid %in% index_eid$meds.0.0 |
+                                   x$eid %in% index_eid$meds_hormones.0.0)] <- NA
+    x$blood_pressure_meds[which(x$eid %in% index_eid$meds.0.0 |
+                                   x$eid %in% index_eid$meds_hormones.0.0)] <- NA
+    x$insulin[which(x$eid %in% index_eid$meds.0.0 |
+                                   x$eid %in% index_eid$meds_hormones.0.0)] <- NA
+    
+    x$multivitamin_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$vitamin_A_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$vitamin_B_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$vitamin_C_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$vitamin_D_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$vitamin_E_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+    x$folate_supplements[which(x$eid %in% index_eid$vitamins.0.0)] <- NA
+
+    x$fish_oil_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+    x$calcium_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+    x$selenium_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+    x$glucosamine_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+    x$iron_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+    x$zinc_supplements[which(x$eid %in% index_eid$minerals.0.0)] <- NA
+
+    x$never_eat_sugar[which(x$eid %in% index_eid$never_eat0.0)] <- NA
+    x$never_eat_eggs[which(x$eid %in% index_eid$never_eat0.0)] <- NA
+    x$never_eat_wheat[which(x$eid %in% index_eid$never_eat0.0)] <- NA
+    x$never_eat_dairy[which(x$eid %in% index_eid$never_eat0.0)] <- NA
+
+    x$self_illness_injury_assault[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    x$relative_illness_injury_assault[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    x$death_relative[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    x$death_partner[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    x$divorce[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    x$financial_difficulty[which(x$eid %in% index_eid$sle.0.0)] <- NA
+    
+    # recode for all other variables
+    for(k in seq_along(x)) {
+        if (colnames(x[k]) %in% names(index_eid)) {
+            x[[k]][which(x[["eid"]] %in% index_eid[[colnames(x[k])]])] <- NA
+        }
+    }
+    
+    return(x)
+}
+
+imp_data <- lapply(imp_data, PNA_remove)
+
+```
+
+``` {r save}
+library(feather)
+
+# save
+save(
+    imp_data,
+    file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation_jul_25_2023.RData")
+
+
+### csv
+
+write.csv(imp_data[[1]], row.names = FALSE, 
+          file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation1_jul_25_2023.csv")
+
+write.csv(imp_data[[2]], row.names = FALSE, 
+          file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation2_jul_25_2023.csv")
+
+write.csv(imp_data[[3]], row.names = FALSE, 
+          file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation3_jul_25_2023.csv")
+
+write.csv(imp_data[[4]], row.names = FALSE, 
+          file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation4_jul_25_2023.csv")
+
+write.csv(imp_data[[5]], row.names = FALSE, 
+          file = ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation5_jul_25_2023.csv")
+
+
+### feather
+
+write_feather(imp_data[[1]],
+          ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation1_jul_25_2023.feather")
+
+write_feather(imp_data[[2]],
+          ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation2_jul_25_2023.feather")
+
+write_feather(imp_data[[3]],
+          ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation3_jul_25_2023.feather")
+
+write_feather(imp_data[[4]], 
+          ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation4_jul_25_2023.feather")
+
+write_feather(imp_data[[5]],
+          ".../UKB/Analysis projects/Proteomics/general data coding/ukb_imputation5_jul_25_2023.feather")
+
+```
+
+
+
+

@@ -16,30 +16,13 @@ July 14, 2024
 7. Raw China Kadoorie Biobank (CKB) questionnaire, Olink, and endpoints data.
 8. FinnGen proteomics and endpoints data.
 
-
-# Code files are run in the following order:
-
-1. Import CKB raw questionnaire and endpoint data (CKD-data-import.Rmd).
-2. Import CKB Olink and mortality data (CKB-olink-mort-import.Rmd).
-3. Import UKB raw data (UKB-data-import.Rmd).
-4. Clean and recode UKB data (UKB_data-recoding.Rmd).
-5. Impute missing values and code derived variables in UKB data (UKB-data-imputation.Rmd).
-6. Code granular age variable in UKB (UKB-granular-age.R).
-7. Import UKB Olink data (UKB-import-olink.Rmd).
-8. Code UKB mortality data (UKB-mortality-coding.Rmd).
-9. Code UKB non-cancer incident disease outcomes (UKB-disease-diagnosis-coding.Rmd).
-10. Code UKB cancer incident outcomes (UKB-cancer-diagnosis-coding.Rmd).
-11. Script with machine learning functions (lgbm_functions.py) that is loaded when running the proteomic age model. Make sure this is saved in same directory as proteomic_age_model.py.
-12. Run proteomic age model (proteomic_age_model.py). 
-13. Run regression analyses, create figures and tables (figures_and_regressions.ipynb).
-
-
 # Other files called in codes that were downloaded from UKB or created myself (other_files folder):
 
-1. UKB icd9 coding scheme (icd9_coding87.tsv).
-2. UKB icd10 coding scheme (icd10_coding19.tsv).
-3. Uniprot IDs for protAge proteins (uniprot-230-proteins-to-check-jul-26-23.csv).
+1. UKB icd9 coding scheme (icd9_coding87.tsv) and age-related disease diagnosis codes (icd9_codings.R).
+2. UKB icd10 coding scheme (icd10_coding19.tsv) and cancer / age-related disease diagnosis codes (icd10_codings.R; icd10_cancer_codings.R).
+3. Uniprot IDs for protAge proteins (ProtAge_proteins_2023-12-29.csv).
 4. Files with CpGs from existing DNAm clocks (DunedinPACE_genes.csv, Horvath_clock_cpgs.csv, Levine_PhenoAge_cpgs.csv).
 5. Files with proteins from existing proteomic clocks (johnson_2020_clock_proteins.csv, Lehallier_2023_aging_proteins.csv, lehallier_nature_med_2019_clock.csv, lehallier_nature_med_2019_nomenclature.csv).
-6. Names of coded Olink variables (olink_names.csv).
+6. Names of coded Olink variables (olink_names_oct_30_2023.csv).
 7. Primary care read codes to ICD lookup tables (primarycare_codings folder).
+

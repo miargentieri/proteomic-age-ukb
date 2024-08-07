@@ -18,8 +18,8 @@ July 14, 2024
 
 # Other files called in codes that were downloaded from UKB or created myself (other_files folder):
 
-1. UKB icd9 coding scheme (icd9_coding87.tsv) and age-related disease diagnosis codes (icd9_codings.R).
-2. UKB icd10 coding scheme (icd10_coding19.tsv) and cancer / age-related disease diagnosis codes (icd10_codings.R; icd10_cancer_codings.R).
+1. UKB icd9 coding scheme (icd9_coding87.tsv) and age-related disease icd9 diagnosis codes (icd9_codings.R).
+2. UKB icd10 coding scheme (icd10_coding19.tsv) and cancer / age-related disease icd10 diagnosis codes (icd10_codings.R; icd10_cancer_codings.R).
 3. Uniprot IDs for protAge proteins (ProtAge_proteins_2023-12-29.csv).
 4. Files with CpGs from existing DNAm clocks (DunedinPACE_genes.csv, Horvath_clock_cpgs.csv, Levine_PhenoAge_cpgs.csv).
 5. Files with proteins from existing proteomic clocks (johnson_2020_clock_proteins.csv, Lehallier_2023_aging_proteins.csv, lehallier_nature_med_2019_clock.csv, lehallier_nature_med_2019_nomenclature.csv).

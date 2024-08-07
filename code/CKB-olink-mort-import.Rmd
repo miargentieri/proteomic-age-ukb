@@ -13,10 +13,10 @@ path2 <- ".../UKB/Analysis projects/ACM EWAS 2021"
 ```{r import}
 
 # load olink data
-cardio_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_cardiometabolic.csv")
-inflamm_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_inflammation.csv")
-neuro_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_neurology.csv")
-onco_olink <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_olink_oncology.csv")
+cardio_olink <- read.csv(".../data_baseline_olink_cardiometabolic.csv")
+inflamm_olink <- read.csv(".../data_baseline_olink_inflammation.csv")
+neuro_olink <- read.csv(".../data_baseline_olink_neurology.csv")
+onco_olink <- read.csv(".../data_baseline_olink_oncology.csv")
 
 olink_list <- list(cardio_olink, inflamm_olink, neuro_olink, onco_olink)
 
@@ -27,8 +27,8 @@ olink_dat <- Reduce(merge_dfs, olink_list)
 ```
 
 ```{r questionnaire_dat}
-# olink <- read.csv("K:/CKB-exposome/For_Austin/olink_data/data_baseline_olink.csv")
-dat <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_questionnaires.csv")
+# olink <- read.csv(".../data_baseline_olink.csv")
+dat <- read.csv(".../data_baseline_questionnaires.csv")
 
 # age at recruitment - convert to decimal
 dat$recruitment_age <- dat$age_at_study_date_x100 / 100
@@ -62,7 +62,7 @@ colnames(olink_dat)[which(colnames(olink_dat) == "C9ORF40")] <- "C9orf40"
 ```
 
 ```{r merge_ascertainment}
-ascertainment <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_ascertainments.csv")
+ascertainment <- read.csv(".../data_baseline_ascertainments.csv")
 asc_cols <- c('csid', 'olinkexp1536_chd_b1_subcohort', 'olinkexpexpan_chd_b1_subcohort')
 
 olink_dat <- merge(
@@ -101,6 +101,6 @@ olink_dat <- merge(
 ```{r save}
 
 # save csv
-write.csv(olink_dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/ckb/ckb_coded_olink_oct_17_2023.csv")
+write.csv(olink_dat, row.names = FALSE, file = ".../ckb_coded_olink_oct_17_2023.csv")
 
 ```

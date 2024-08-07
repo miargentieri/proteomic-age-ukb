@@ -1,6 +1,6 @@
 
 ```{r path}
-path <- "/Users/aargenti/Documents/proteomic_age/"
+path <- "/path/to/dir"
 ```
 
 ```{r import_table}
@@ -9,11 +9,11 @@ library(readr)
 library(dplyr)
 
 ### import olink data
-olink <- read_delim("/Users/aargenti/Documents/proteomic_age/data/olink_data_long_oct_17_2023.txt",
+olink <- read_delim(".../olink_data_long_oct_17_2023.txt",
     "\t", escape_double = FALSE, trim_ws = TRUE)
 
 # import protein id codings
-protein_ID_coding143 <- read_delim("/Users/aargenti/Documents/proteomic_age/data/protein_ID_coding143.tsv", 
+protein_ID_coding143 <- read_delim(".../protein_ID_coding143.tsv", 
                                    delim = "\t", 
                                    escape_double = FALSE,
                                    trim_ws = TRUE)
@@ -78,7 +78,7 @@ long_age_olink <- merge(
 )
 
 # save
-write.csv(long_age_olink, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/olink_all_timepoints_october_17_2023.csv")
+write.csv(long_age_olink, row.names = FALSE, file = ".../olink_all_timepoints_october_17_2023.csv")
 
 
 ```
@@ -132,14 +132,14 @@ length(unique(olink_dat$eid))
 
 ```{r olink_batch}
 # load plate information
-batch_info <- read.table("/Users/aargenti/Documents/proteomic_age/data/olink_batch_oct_30_2023.csv", sep=',', header = TRUE)
+batch_info <- read.table(".../olink_batch_oct_30_2023.csv", sep=',', header = TRUE)
 
 # subset to plate at instance 0
 batch_info <- batch_info[c('eid', 'X30901.0.0')]
 colnames(batch_info) <- c('eid', 'olink_plate')
 
 # load batch information
-batches <- read.table("/Users/aargenti/Documents/proteomic_age/data/olink_batch_number.dat", header = TRUE)
+batches <- read.table(".../olink_batch_number.dat", header = TRUE)
 
 batch_info$olink_batch <- NA
 
@@ -164,9 +164,9 @@ olink_dat <- merge(
 
 ```{r save}
 
-save(olink_dat, file = "/Users/aargenti/Documents/proteomic_age/data/olink_data_wide_oct_30_2023.RData")
+save(olink_dat, file = ".../olink_data_wide_oct_30_2023.RData")
 
-write.csv(olink_dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/olink_data_wide_oct_30_2023.csv")
+write.csv(olink_dat, row.names = FALSE, file = ".../olink_data_wide_oct_30_2023.csv")
 
 ```
 
@@ -175,7 +175,7 @@ write.csv(olink_dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteo
 olink_names <- colnames(olink_dat)
 olink_names <- olink_names[which(olink_names %nin% c('eid', 'olink_batch', 'olink_plate'))]
 
-write.table(olink_names, file = "/Users/aargenti/Documents/proteomic_age/data/olink_names_october_17_2023.csv", col.names = FALSE, row.names = FALSE)
+write.table(olink_names, file = ".../olink_names_october_17_2023.csv", col.names = FALSE, row.names = FALSE)
 ```
 
 ```{r missing_plot}

@@ -5,7 +5,7 @@ import datetime as dt
 random_seed = 3456
 
 # Load protein data
-data_path = '/gpfs3/well/charge/shared/ukb_phenotype_61054/olink_data/olink_data_wide_oct_30_2023.csv'
+data_path = '.../olink_data_wide_oct_30_2023.csv'
 data = pd.read_csv(data_path)
 data = data[data.columns[data.columns != 'X']]
 
@@ -32,5 +32,5 @@ kds.mice(
 # get the completed dataframe from the miceforest object
 olink_data_imputed = kds.complete_data()
 
-name = "/gpfs3/well/charge/shared/ukb_phenotype_61054/olink_data/olink_data_imputed_nov_18_2023.csv"
+name = ".../olink_data_imputed_nov_18_2023.csv"
 olink_data_imputed.to_csv(name, index=False)

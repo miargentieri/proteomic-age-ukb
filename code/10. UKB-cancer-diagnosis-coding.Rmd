@@ -8,13 +8,13 @@ library(Hmisc)
 ```{r ICD-10}
 
 # load ICD-10 codings for major cancers
-source("/Users/aargenti/Documents/proteomic_age/icd10_cancer_codings.R")
+source(".../icd10_cancer_codings.R")
 
 
 ```
 
 ```{r ICD-9}
-icd9list <- read_delim("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/icd9_coding87.tsv", 
+icd9list <- read_delim(".../icd9_coding87.tsv", 
     "\t", 
     escape_double = FALSE, 
     trim_ws = TRUE)
@@ -224,13 +224,13 @@ events <- c(
 ```{r import_raw_data}
 
 # import main UKB dataset
-dat <- readRDS("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/5. Recoded datasets/ukb_full_recoded_dataset_may_21_2022.rds")
+dat <- readRDS(".../ukb_full_recoded_dataset_may_21_2022.rds")
 
 ```
 
 ```{r cancer_registry}
 
-cancer_dat <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/ukb_cancer_register_data_may_17_2023.csv")
+cancer_dat <- read.csv(".../ukb_cancer_register_data_may_17_2023.csv")
 
 # ICD 10 codes
 prefix <- "p40006_i"
@@ -313,7 +313,7 @@ cancer_dat_long <- merge(
 
 # import cause of death (COD) data. 
 # more info here: http://biobank.ndph.ox.ac.uk/showcase/showcase/docs/DeathLinkage.pdf.
-dat_COD <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/Data tables/death_cause_may_23_2023.csv")
+dat_COD <- read.csv(".../death_cause_may_23_2023.csv")
 
 
 ### prepare cause of death data
@@ -390,7 +390,7 @@ dat_COD <- dat_COD[, col_order]
 ```{r mort_prep}
 
 # import mortality data
-mort <- read.csv("/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/Data tables/death_may_23_2023.csv")
+mort <- read.csv(".../death_may_23_2023.csv")
 
 
 ### prepare death date data 
@@ -674,7 +674,7 @@ for (k in seq_along(events)) {
 colnames(table) <- c('Outcome', 'Disease free', 'All cases', 'Prevalent cases', 'incident cases')
 
 print(table)
-write.csv(table, row.names = FALSE, "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_counts_july_05_2023.csv")
+write.csv(table, row.names = FALSE, ".../cancer_data_counts_july_05_2023.csv")
 ```
 
 ```{r save}
@@ -702,8 +702,8 @@ all_cols <- c(
 dat_cancer <- dat[all_cols]
 
 # save
-save(dat_cancer, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_july_05_2023.RData")
+save(dat_cancer, file = ".../cancer_data_july_05_2023.RData")
 
-write.csv(dat_cancer, row.names = FALSE, file = "/Users/austin.argentieri/OneDrive - Nexus365/DPhil Research/UKB/Datasets/6. Outcome data/cancer_data_july_05_2023.csv")
+write.csv(dat_cancer, row.names = FALSE, file = ".../cancer_data_july_05_2023.csv")
 ```
 

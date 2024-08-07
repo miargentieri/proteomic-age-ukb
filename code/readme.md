@@ -16,7 +16,7 @@ July 14, 2024
 7. Raw China Kadoorie Biobank (CKB) questionnaire, Olink, and endpoints data.
 8. FinnGen proteomics and endpoints data.
 
-# Other files called in codes that were downloaded from UKB or created myself (other_files folder):
+# Other files called in codes that were downloaded from UKB or created by our team (`files/` directory):
 
 1. UKB icd9 coding scheme (icd9_coding87.tsv) and age-related disease icd9 diagnosis codes (icd9_codings.R).
 2. UKB icd10 coding scheme (icd10_coding19.tsv) and cancer / age-related disease icd10 diagnosis codes (icd10_codings.R; icd10_cancer_codings.R).

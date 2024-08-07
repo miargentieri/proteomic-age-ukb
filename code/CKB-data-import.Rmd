@@ -13,18 +13,18 @@ path2 <- ".../UKB/Analysis projects/ACM EWAS 2021"
 ```{r import}
 
 # load data
-endpoints <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/endpoints.csv")
-dat <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_baseline_questionnaires.csv")
+endpoints <- read.csv(".../endpoints.csv")
+dat <- read.csv(".../data_baseline_questionnaires.csv")
 
 # load definitions
-end_definitions <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/endpoint_definitions.csv")
-column_details <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_dictionary.csv")
+end_definitions <- read.csv("...endpoint_definitions.csv")
+column_details <- read.csv(".../data_dictionary.csv")
 exp_details <- column_details[which(column_details$table == "data_baseline_questionnaires"), ]
 
-value_definitions <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/value_definitions.csv")
+value_definitions <- read.csv(".../value_definitions.csv")
 
-resurvey_devices <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_resurvey2_devices.csv")
-resurvey_dat <- read.csv("/Users/aargenti/Documents/proteomic_age/data/ckb/DAR-2023-00293-V1/data_resurvey2_questionnaires.csv")
+resurvey_devices <- read.csv(".../data_resurvey2_devices.csv")
+resurvey_dat <- read.csv(".../data_resurvey2_questionnaires.csv")
 ```
 
 ```{r identify_columns}
@@ -652,10 +652,10 @@ dat$COPD_survival_time <- as.numeric(dat$COPD_censoring_date - dat$study_date)
 
 ```{r save}
 library(feather)
-write_feather(dat, "/Users/aargenti/Documents/proteomic_age/data/ckb/ckb_coded_data_oct_24_2023.feather")
+write_feather(dat, ".../ckb_coded_data_oct_24_2023.feather")
 
 # save
-# save(dat, file = "K:/CKB-exposome/For_Austin/data/ckb_coded_data_oct_24_2023.RData")
-write.csv(dat, row.names = FALSE, file = "/Users/aargenti/Documents/proteomic_age/data/ckb/ckb_coded_data_oct_24_2023.csv")
+# save(dat, file = ".../ckb_coded_data_oct_24_2023.RData")
+write.csv(dat, row.names = FALSE, file = ".../ckb_coded_data_oct_24_2023.csv")
 
 ```

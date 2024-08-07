@@ -1,0 +1,19 @@
+seed = 56
+
+[data]
+normalization = false
+path = 'data_mlp/olink_proteomic'
+y_policy = false
+
+[model]
+d_layers = [ 73, 71, 71, 200 ]
+dropout = 0.1884376482250047
+
+[training]
+batch_size = 256
+eval_batch_size = 2048
+lr = 0.0001406735690840302
+n_epochs = 1000
+optimizer = 'adamw'
+patience = 16
+weight_decay = 0.0

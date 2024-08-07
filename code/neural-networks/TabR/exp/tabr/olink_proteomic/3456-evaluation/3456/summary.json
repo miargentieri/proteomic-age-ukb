@@ -1,0 +1,14 @@
+{
+    "function": "bin.tabr.main",
+    "gpus": [
+        "NVIDIA GeForce RTX 2080 Ti"
+    ],
+    "n_parameters": 376399,
+    "best_epoch": 216,
+    "scores": {
+        "train": 0.9073195613407201,
+        "val": 0.8784404259535443,
+        "test": 0.8784404259535443
+    },
+    "time": "0:09:59"
+}

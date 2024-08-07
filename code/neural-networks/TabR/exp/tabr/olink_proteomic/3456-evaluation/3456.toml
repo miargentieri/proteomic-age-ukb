@@ -1,0 +1,32 @@
+seed = 3456
+batch_size = 256
+patience = 16
+n_epochs = inf
+context_size = 96
+
+[data]
+seed = 3456
+cache = false
+path = ":data/olink_proteomic"
+num_policy = "__null__"
+cat_policy = "__null__"
+y_policy = "__null__"
+score = "r2"
+
+[model]
+num_embeddings = "__null__"
+d_main = 99
+context_dropout = 0.5385319941866226
+d_multiplier = 2.0
+encoder_n_blocks = 0
+predictor_n_blocks = 1
+mixer_normalization = "auto"
+dropout0 = 0.34965954656724874
+dropout1 = 0.0
+normalization = "LayerNorm"
+activation = "ReLU"
+
+[optimizer]
+type = "AdamW"
+lr = 3.794385963517493e-05
+weight_decay = 6.522590219868319e-05

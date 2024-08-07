@@ -1,0 +1,455 @@
+[
+    {
+        "dataset": "olink_proteomic",
+        "algorithm": "ft_transformer",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_ft_transformer/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "reglu",
+                "attention_dropout": 0.3215852560002476,
+                "d_ffn_factor": 1.592602625974301,
+                "d_token": 92,
+                "ffn_dropout": 0.4374833629172841,
+                "initialization": "kaiming",
+                "n_heads": 4,
+                "n_layers": 4,
+                "prenormalization": true,
+                "residual_dropout": 0.0
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 128,
+                "eval_batch_size": 512,
+                "lr": 0.0002035763880119571,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 6.686621154729692e-06
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "6": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "7": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                },
+                "8": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "9": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                }
+            }
+        },
+        "epoch_size": 199,
+        "n_parameters": 834321,
+        "chunk_size": 32,
+        "eval_batch_size": 128,
+        "best_epoch": 38,
+        "metrics": {
+            "train": {
+                "rmse": 2.5747826798826643,
+                "r2": 0.9009682818705893,
+                "score": 0.9009682818705893
+            },
+            "val": {
+                "rmse": 2.846238895464088,
+                "r2": 0.8791701055270301,
+                "score": 0.8791701055270301
+            },
+            "test": {
+                "rmse": 2.831426919008391,
+                "r2": 0.8801348096521799,
+                "score": 0.8801348096521799
+            }
+        },
+        "time": "2:37:43",
+        "trial_id": 0,
+        "tuning_time": "19:16:42"
+    },
+    {
+        "dataset": "olink_proteomic",
+        "algorithm": "ft_transformer",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_ft_transformer/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "reglu",
+                "attention_dropout": 0.1072126045473007,
+                "d_ffn_factor": 1.113080991003342,
+                "d_token": 428,
+                "ffn_dropout": 0.2295923412881646,
+                "initialization": "kaiming",
+                "n_heads": 4,
+                "n_layers": 2,
+                "prenormalization": true,
+                "residual_dropout": 0.1215358958029138
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 128,
+                "eval_batch_size": 512,
+                "lr": 0.0001194055517704177,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 0.0005954015089159497
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "6": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "7": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                },
+                "8": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "9": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                }
+            }
+        },
+        "epoch_size": 199,
+        "n_parameters": 5178137,
+        "chunk_size": 64,
+        "eval_batch_size": 128,
+        "best_epoch": 31,
+        "metrics": {
+            "train": {
+                "rmse": 2.468231384316381,
+                "r2": 0.9089950688633098,
+                "score": 0.9089950688633098
+            },
+            "val": {
+                "rmse": 2.8043550669108006,
+                "r2": 0.8827000814586012,
+                "score": 0.8827000814586012
+            },
+            "test": {
+                "rmse": 2.777940357112633,
+                "r2": 0.8846206181400164,
+                "score": 0.8846206181400164
+            }
+        },
+        "time": "1:24:41",
+        "trial_id": 1,
+        "tuning_time": "1 day, 1:44:09"
+    },
+    {
+        "dataset": "olink_proteomic",
+        "algorithm": "ft_transformer",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_ft_transformer/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "reglu",
+                "attention_dropout": 0.3953107557856891,
+                "d_ffn_factor": 2.423061502960787,
+                "d_token": 168,
+                "ffn_dropout": 0.2303303530619277,
+                "initialization": "kaiming",
+                "n_heads": 4,
+                "n_layers": 4,
+                "prenormalization": true,
+                "residual_dropout": 0.1858008019490783
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 128,
+                "eval_batch_size": 512,
+                "lr": 0.0001359927484761642,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 0.0008342095365873629
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "6": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "7": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                },
+                "8": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "9": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                }
+            }
+        },
+        "epoch_size": 199,
+        "n_parameters": 2255129,
+        "chunk_size": 32,
+        "eval_batch_size": 128,
+        "best_epoch": 68,
+        "metrics": {
+            "train": {
+                "rmse": 2.3981952237638535,
+                "r2": 0.914086336418013,
+                "score": 0.914086336418013
+            },
+            "val": {
+                "rmse": 2.818553588913004,
+                "r2": 0.8815092880271441,
+                "score": 0.8815092880271441
+            },
+            "test": {
+                "rmse": 2.7945614135451136,
+                "r2": 0.8832357988710977,
+                "score": 0.8832357988710977
+            }
+        },
+        "time": "4:39:27",
+        "trial_id": 2,
+        "tuning_time": "1 day, 20:20:04"
+    },
+    {
+        "dataset": "olink_proteomic",
+        "algorithm": "ft_transformer",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_ft_transformer/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "reglu",
+                "attention_dropout": 0.3369203446715346,
+                "d_ffn_factor": 0.6919879831583969,
+                "d_token": 232,
+                "ffn_dropout": 0.1100230158441024,
+                "initialization": "kaiming",
+                "n_heads": 4,
+                "n_layers": 1,
+                "prenormalization": true,
+                "residual_dropout": 0.08437499247974245
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 128,
+                "eval_batch_size": 512,
+                "lr": 0.0005701078107930071,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 6.626647269018755e-06
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "6": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "7": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                },
+                "8": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "9": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                }
+            }
+        },
+        "epoch_size": 199,
+        "n_parameters": 1673737,
+        "best_epoch": 54,
+        "metrics": {
+            "train": {
+                "rmse": 2.404374952003228,
+                "r2": 0.9136430038482645,
+                "score": 0.9136430038482645
+            },
+            "val": {
+                "rmse": 2.8192591213458695,
+                "r2": 0.8814499703266394,
+                "score": 0.8814499703266394
+            },
+            "test": {
+                "rmse": 2.816253786954593,
+                "r2": 0.8814160296463703,
+                "score": 0.8814160296463703
+            }
+        },
+        "time": "0:08:19",
+        "trial_id": 3,
+        "tuning_time": "1 day, 20:54:21"
+    },
+    {
+        "dataset": "olink_proteomic",
+        "algorithm": "ft_transformer",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_ft_transformer/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "reglu",
+                "attention_dropout": 0.3366502063417674,
+                "d_ffn_factor": 0.6726219399424832,
+                "d_token": 168,
+                "ffn_dropout": 0.376106480959462,
+                "initialization": "kaiming",
+                "n_heads": 4,
+                "n_layers": 4,
+                "prenormalization": true,
+                "residual_dropout": 0.06995992170649788
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 128,
+                "eval_batch_size": 512,
+                "lr": 0.0002344898005591084,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 6.049379914583522e-05
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "6": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "7": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                },
+                "8": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                },
+                "9": {
+                    "name": "NVIDIA GeForce RTX 3090",
+                    "total_memory": 25769803776
+                }
+            }
+        },
+        "epoch_size": 199,
+        "n_parameters": 1660073,
+        "chunk_size": 32,
+        "eval_batch_size": 128,
+        "best_epoch": 44,
+        "metrics": {
+            "train": {
+                "rmse": 2.4108581831653,
+                "r2": 0.9131766714949726,
+                "score": 0.9131766714949726
+            },
+            "val": {
+                "rmse": 2.7669740796623503,
+                "r2": 0.8858063719812148,
+                "score": 0.8858063719812148
+            },
+            "test": {
+                "rmse": 2.74383054794707,
+                "r2": 0.8874366651783727,
+                "score": 0.8874366651783727
+            }
+        },
+        "time": "3:12:07",
+        "trial_id": 4,
+        "tuning_time": "2 days, 12:23:43"
+    }
+]

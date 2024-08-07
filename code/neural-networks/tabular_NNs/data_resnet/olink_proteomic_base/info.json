@@ -1,0 +1,11 @@
+{
+    "name": "olink_proteomic___0",
+    "basename": "olink_proteomic",
+    "split": 0,
+    "task_type": "regression",
+    "n_num_features": 2897,
+    "n_cat_features": 0,
+    "train_size": 31808,
+    "val_size": 0,
+    "test_size": 13633
+}

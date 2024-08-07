@@ -1,0 +1,148 @@
+{
+    "function": "bin.tune.main",
+    "gpus": [
+        "NVIDIA GeForce RTX 2080 Ti"
+    ],
+    "config": {
+        "seed": 3456,
+        "function": "bin.tabr.main",
+        "n_trials": 200,
+        "timeout": null,
+        "sampler": {},
+        "kfold": {
+            "n_splits": 5,
+            "shuffle": true,
+            "random_state": 3456
+        },
+        "space": {
+            "seed": 3456,
+            "batch_size": 256,
+            "patience": 16,
+            "n_epochs": Infinity,
+            "context_size": 96,
+            "data": {
+                "seed": 3456,
+                "cache": false,
+                "path": ":data/olink_proteomic",
+                "num_policy": null,
+                "cat_policy": null,
+                "y_policy": null,
+                "score": "r2"
+            },
+            "model": {
+                "num_embeddings": null,
+                "d_main": [
+                    "_tune_",
+                    "int",
+                    96,
+                    384
+                ],
+                "context_dropout": [
+                    "_tune_",
+                    "uniform",
+                    0.0,
+                    0.6
+                ],
+                "d_multiplier": 2.0,
+                "encoder_n_blocks": 0,
+                "predictor_n_blocks": 1,
+                "mixer_normalization": "auto",
+                "dropout0": [
+                    "_tune_",
+                    "uniform",
+                    0.0,
+                    0.6
+                ],
+                "dropout1": 0.0,
+                "normalization": "LayerNorm",
+                "activation": "ReLU"
+            },
+            "optimizer": {
+                "type": "AdamW",
+                "lr": [
+                    "_tune_",
+                    "loguniform",
+                    3e-05,
+                    0.001
+                ],
+                "weight_decay": [
+                    "_tune_",
+                    "?loguniform",
+                    0.0,
+                    1e-06,
+                    0.0001
+                ]
+            }
+        }
+    },
+    "best": {
+        "function": "bin.tabr.main",
+        "gpus": [
+            "NVIDIA GeForce RTX 2080 Ti"
+        ],
+        "config": {
+            "seed": 3456,
+            "batch_size": 256,
+            "patience": 16,
+            "n_epochs": Infinity,
+            "context_size": 96,
+            "data": {
+                "seed": 3456,
+                "cache": false,
+                "path": ":data/olink_proteomic",
+                "num_policy": null,
+                "cat_policy": null,
+                "y_policy": null,
+                "score": "r2"
+            },
+            "model": {
+                "num_embeddings": null,
+                "d_main": 99,
+                "context_dropout": 0.5385319941866226,
+                "d_multiplier": 2.0,
+                "encoder_n_blocks": 0,
+                "predictor_n_blocks": 1,
+                "mixer_normalization": "auto",
+                "dropout0": 0.34965954656724874,
+                "dropout1": 0.0,
+                "normalization": "LayerNorm",
+                "activation": "ReLU"
+            },
+            "optimizer": {
+                "type": "AdamW",
+                "lr": 3.794385963517493e-05,
+                "weight_decay": 6.522590219868319e-05
+            }
+        },
+        "n_parameters": 376399,
+        "prediction_type": null,
+        "best_epoch": 279,
+        "metrics": {
+            "train": {
+                "rmse": 2.4420195706829824,
+                "mae": 1.9246014833450318,
+                "r2": 0.910918853182482,
+                "score": 0.910918853182482
+            },
+            "val": {
+                "rmse": 2.8796930733030264,
+                "mae": 2.250851202011108,
+                "r2": 0.8761548726960754,
+                "score": 0.8761548726960754
+            },
+            "test": {
+                "rmse": 2.89034034939536,
+                "mae": 2.250926971435547,
+                "r2": 0.8750944653218025,
+                "score": 0.8750944653218025
+            }
+        },
+        "time": "0:07:43",
+        "chunk_size": null,
+        "eval_batch_size": 1024,
+        "trial_id": 125,
+        "tuning_time": "3 days, 3:19:01"
+    },
+    "time": "4 days, 23:48:03",
+    "n_completed_trials": 200
+}

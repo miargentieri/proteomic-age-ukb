@@ -1,0 +1,168 @@
+{
+    "config": {
+        "base_config": {
+            "data": {
+                "normalization": false,
+                "path": "data_resnet/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "relu",
+                "normalization": "batchnorm"
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 256,
+                "eval_batch_size": 2048,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16
+            }
+        },
+        "optimization": {
+            "kfold": {
+                "n_splits": 5,
+                "random_state": 3456,
+                "shuffle": true
+            },
+            "options": {
+                "n_trials": 100
+            },
+            "sampler": {
+                "seed": 3456
+            },
+            "space": {
+                "model": {
+                    "d": [
+                        "int",
+                        64,
+                        512
+                    ],
+                    "d_hidden_factor": [
+                        "uniform",
+                        1.0,
+                        4.0
+                    ],
+                    "hidden_dropout": [
+                        "uniform",
+                        0.0,
+                        0.5
+                    ],
+                    "n_layers": [
+                        "int",
+                        1,
+                        8
+                    ],
+                    "residual_dropout": [
+                        "?uniform",
+                        0.0,
+                        0.0,
+                        0.5
+                    ]
+                },
+                "training": {
+                    "lr": [
+                        "loguniform",
+                        0.0001,
+                        0.01
+                    ],
+                    "weight_decay": [
+                        "?loguniform",
+                        0.0,
+                        1e-06,
+                        0.001
+                    ]
+                }
+            }
+        },
+        "program": "bin/resnet.py"
+    },
+    "environment": {
+        "devices": {
+            "CUDA_VISIBLE_DEVICES": "0",
+            "torch.version.cuda": "11.6",
+            "torch.backends.cudnn.version()": 8302,
+            "torch.cuda.nccl.version()": [
+                2,
+                14,
+                3
+            ],
+            "driver": "525.105.17",
+            "0": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            }
+        }
+    },
+    "best_stats": {
+        "dataset": "olink_proteomic",
+        "algorithm": "resnet",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_resnet/olink_proteomic",
+                "y_policy": "mean_std"
+            },
+            "model": {
+                "activation": "relu",
+                "d": 292,
+                "d_hidden_factor": 1.994168323175757,
+                "hidden_dropout": 0.4879762765437993,
+                "n_layers": 7,
+                "normalization": "batchnorm",
+                "residual_dropout": 0.0
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 256,
+                "eval_batch_size": 2048,
+                "lr": 0.0001301307727015071,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 0.0009556441003925309
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "0": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                }
+            }
+        },
+        "epoch_size": 100,
+        "n_parameters": 3236515,
+        "best_epoch": 12,
+        "metrics": {
+            "train": {
+                "rmse": 2.29819834434339,
+                "r2": 0.9211016081447668,
+                "score": 0.9211016081447668
+            },
+            "val": {
+                "rmse": 2.859207984061406,
+                "r2": 0.8780664585367599,
+                "score": 0.8780664585367599
+            },
+            "test": {
+                "rmse": 2.867229961525797,
+                "r2": 0.8770842766790031,
+                "score": 0.8770842766790031
+            }
+        },
+        "time": "0:00:39",
+        "trial_id": 73,
+        "tuning_time": "3:48:40"
+    },
+    "time": "5:19:59"
+}

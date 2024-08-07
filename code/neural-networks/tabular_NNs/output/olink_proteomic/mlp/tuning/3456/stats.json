@@ -1,0 +1,152 @@
+{
+    "config": {
+        "base_config": {
+            "data": {
+                "normalization": false,
+                "path": "data_mlp/olink_proteomic",
+                "y_policy": false
+            },
+            "model": {},
+            "seed": 3456,
+            "training": {
+                "batch_size": 256,
+                "eval_batch_size": 2048,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16
+            }
+        },
+        "optimization": {
+            "kfold": {
+                "n_splits": 5,
+                "random_state": 3456,
+                "shuffle": true
+            },
+            "options": {
+                "n_trials": 200
+            },
+            "sampler": {
+                "seed": 3456
+            },
+            "space": {
+                "model": {
+                    "d_layers": [
+                        "$mlp_d_layers",
+                        1,
+                        8,
+                        1,
+                        512
+                    ],
+                    "dropout": [
+                        "?uniform",
+                        0.0,
+                        0.0,
+                        0.5
+                    ]
+                },
+                "training": {
+                    "lr": [
+                        "loguniform",
+                        0.0001,
+                        0.01
+                    ],
+                    "weight_decay": [
+                        "?loguniform",
+                        0.0,
+                        1e-06,
+                        0.001
+                    ]
+                }
+            }
+        },
+        "program": "bin/mlp.py"
+    },
+    "environment": {
+        "devices": {
+            "CUDA_VISIBLE_DEVICES": "5",
+            "torch.version.cuda": "11.6",
+            "torch.backends.cudnn.version()": 8302,
+            "torch.cuda.nccl.version()": [
+                2,
+                14,
+                3
+            ],
+            "driver": "525.105.17",
+            "5": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            }
+        }
+    },
+    "best_stats": {
+        "dataset": "olink_proteomic",
+        "algorithm": "mlp",
+        "config": {
+            "data": {
+                "normalization": false,
+                "path": "data_mlp/olink_proteomic",
+                "y_policy": false
+            },
+            "model": {
+                "d_layers": [
+                    73,
+                    71,
+                    71,
+                    200
+                ],
+                "dropout": 0.1884376482250047
+            },
+            "seed": 3456,
+            "training": {
+                "batch_size": 256,
+                "eval_batch_size": 2048,
+                "lr": 0.0001406735690840302,
+                "n_epochs": 1000,
+                "optimizer": "adamw",
+                "patience": 16,
+                "weight_decay": 0.0
+            }
+        },
+        "environment": {
+            "devices": {
+                "CUDA_VISIBLE_DEVICES": "5",
+                "torch.version.cuda": "11.6",
+                "torch.backends.cudnn.version()": 8302,
+                "torch.cuda.nccl.version()": [
+                    2,
+                    14,
+                    3
+                ],
+                "driver": "525.105.17",
+                "5": {
+                    "name": "NVIDIA GeForce RTX 2080 Ti",
+                    "total_memory": 11811160064
+                }
+            }
+        },
+        "epoch_size": 100,
+        "n_parameters": 236521,
+        "best_epoch": 96,
+        "metrics": {
+            "train": {
+                "rmse": 2.322306075197017,
+                "r2": 0.9194376601357429,
+                "score": 0.9194376601357429
+            },
+            "val": {
+                "rmse": 2.8734002016020836,
+                "r2": 0.8768529725547718,
+                "score": 0.8768529725547718
+            },
+            "test": {
+                "rmse": 2.877300503043513,
+                "r2": 0.8762193221840268,
+                "score": 0.8762193221840268
+            }
+        },
+        "time": "0:00:51",
+        "trial_id": 141,
+        "tuning_time": "6:55:30"
+    },
+    "time": "9:58:45"
+}

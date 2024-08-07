@@ -1,0 +1,68 @@
+{
+    "dataset": "olink_proteomic",
+    "algorithm": "mlp",
+    "config": {
+        "data": {
+            "normalization": false,
+            "path": "data_mlp/olink_proteomic",
+            "y_policy": false
+        },
+        "model": {
+            "d_layers": [
+                73,
+                71,
+                71,
+                200
+            ],
+            "dropout": 0.1884376482250047
+        },
+        "seed": 3456,
+        "training": {
+            "batch_size": 256,
+            "eval_batch_size": 2048,
+            "lr": 0.0001406735690840302,
+            "n_epochs": 1000,
+            "optimizer": "adamw",
+            "patience": 16,
+            "weight_decay": 0.0
+        }
+    },
+    "environment": {
+        "devices": {
+            "CUDA_VISIBLE_DEVICES": "5",
+            "torch.version.cuda": "11.6",
+            "torch.backends.cudnn.version()": 8302,
+            "torch.cuda.nccl.version()": [
+                2,
+                14,
+                3
+            ],
+            "driver": "525.105.17",
+            "5": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            }
+        }
+    },
+    "epoch_size": 125,
+    "n_parameters": 236521,
+    "best_epoch": 101,
+    "metrics": {
+        "train": {
+            "rmse": 2.2695515249269174,
+            "r2": 0.923079789695908,
+            "score": 0.923079789695908
+        },
+        "val": {
+            "rmse": 2.877047100202683,
+            "r2": 0.8762411236788918,
+            "score": 0.8762411236788918
+        },
+        "test": {
+            "rmse": 2.877047100202683,
+            "r2": 0.8762411236788918,
+            "score": 0.8762411236788918
+        }
+    },
+    "time": "0:01:06"
+}

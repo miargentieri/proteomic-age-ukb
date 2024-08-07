@@ -1,0 +1,89 @@
+{
+    "dataset": "olink_proteomic",
+    "algorithm": "ft_transformer",
+    "config": {
+        "data": {
+            "normalization": false,
+            "path": "data_ft_transformer/olink_proteomic",
+            "y_policy": "mean_std"
+        },
+        "model": {
+            "activation": "reglu",
+            "attention_dropout": 0.3366502063417674,
+            "d_ffn_factor": 0.6726219399424832,
+            "d_token": 168,
+            "ffn_dropout": 0.376106480959462,
+            "initialization": "kaiming",
+            "n_heads": 4,
+            "n_layers": 4,
+            "prenormalization": true,
+            "residual_dropout": 0.06995992170649788
+        },
+        "seed": 3456,
+        "training": {
+            "batch_size": 128,
+            "eval_batch_size": 512,
+            "lr": 0.0002344898005591084,
+            "n_epochs": 1000,
+            "optimizer": "adamw",
+            "patience": 16,
+            "weight_decay": 6.049379914583522e-05
+        }
+    },
+    "environment": {
+        "devices": {
+            "CUDA_VISIBLE_DEVICES": "5,6,7,8,9",
+            "torch.version.cuda": "11.6",
+            "torch.backends.cudnn.version()": 8302,
+            "torch.cuda.nccl.version()": [
+                2,
+                14,
+                3
+            ],
+            "driver": "525.105.17",
+            "5": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            },
+            "6": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            },
+            "7": {
+                "name": "NVIDIA GeForce RTX 3090",
+                "total_memory": 25769803776
+            },
+            "8": {
+                "name": "NVIDIA GeForce RTX 2080 Ti",
+                "total_memory": 11811160064
+            },
+            "9": {
+                "name": "NVIDIA GeForce RTX 3090",
+                "total_memory": 25769803776
+            }
+        }
+    },
+    "epoch_size": 249,
+    "n_parameters": 1660073,
+    "chunk_size": 32,
+    "eval_batch_size": 128,
+    "best_epoch": 37,
+    "metrics": {
+        "train": {
+            "rmse": 2.441104520903305,
+            "r2": 0.9110116558702279,
+            "score": 0.9110116558702279
+        },
+        "val": {
+            "rmse": 2.712689929317252,
+            "r2": 0.8899771934155547,
+            "score": 0.8899771934155547
+        },
+        "test": {
+            "rmse": 2.712689929317252,
+            "r2": 0.8899771934155547,
+            "score": 0.8899771934155547
+        }
+    },
+    "time": "3:36:22"
+}

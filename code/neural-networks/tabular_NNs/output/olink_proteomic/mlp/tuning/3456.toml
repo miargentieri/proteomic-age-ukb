@@ -1,0 +1,36 @@
+program = 'bin/mlp.py'
+
+[base_config]
+seed = 3456
+
+    [base_config.data]
+    normalization = false
+    path = 'data_mlp/olink_proteomic'
+    y_policy = false
+
+    [base_config.model]
+    [base_config.training]
+    batch_size = 256
+    eval_batch_size = 2048
+    n_epochs = 1000
+    optimizer = 'adamw'
+    patience = 16
+
+[optimization.options]
+n_trials = 200
+
+[optimization.sampler]
+seed = 3456
+
+[optimization.kfold]
+n_splits = 5
+shuffle = true
+random_state = 3456
+
+[optimization.space.model]
+d_layers = [ '$mlp_d_layers', 1, 8, 1, 512 ]
+dropout = [ '?uniform', 0.0, 0.0, 0.5 ]
+
+[optimization.space.training]
+lr = [ 'loguniform', 1e-04, 0.01 ]
+weight_decay = [ '?loguniform', 0.0, 1e-06, 0.001 ]

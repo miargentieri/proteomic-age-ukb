@@ -1,0 +1,24 @@
+seed = 3456
+
+[data]
+normalization = false
+path = 'data_resnet/olink_proteomic'
+y_policy = false
+
+[model]
+activation = 'relu'
+d = 133
+d_hidden_factor = 2.907096639438354
+hidden_dropout = 0.2841454096172893
+n_layers = 6
+normalization = 'batchnorm'
+residual_dropout = 0.0
+
+[training]
+batch_size = 256
+eval_batch_size = 2048
+lr = 0.0001378419280487741
+n_epochs = 1000
+optimizer = 'adamw'
+patience = 16
+weight_decay = 0.0

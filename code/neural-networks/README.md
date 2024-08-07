@@ -25,6 +25,6 @@ export PYTHONPATH="$PYTHONPATH:"$PROJECT_DIR""
 python bin/tune.py output/random_proteomic/ft_transformer/tuning/0.toml
 ```
 
-## Contributing
+## Contributions
 
-Code written and run by [@titoghose].
+Code written and run by [Upamanyu Ghose](https://github.com/titoghose).

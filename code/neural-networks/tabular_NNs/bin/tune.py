@@ -20,7 +20,6 @@ from sklearn.model_selection import KFold
 # %%
 args, output = lib.load_config()
 
-
 # %%
 def sample_parameters(
     trial: optuna.trial.Trial,
@@ -109,6 +108,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         (dataset_info['train_size']+dataset_info['val_size'], 
          dataset_info['n_num_features']+dataset_info['n_cat_features']))
     
+    # Run K-fold crorss-validation
     kfold_stats = {}
     fold_num = 0
     for train_idxs, val_idxs in kfold.split(X=dummy_X):
@@ -143,20 +143,21 @@ def objective(trial: optuna.trial.Trial) -> float:
                 kfold_stats = stats
             else:
                 for split, split_metrics in stats['metrics'].items():
-                    for metric, val in split_metrics.items():
+                    for metric, _ in split_metrics.items():
                         kfold_stats['metrics'][split][metric] += stats['metrics'][split][metric]
             
         fold_num += 1
 
     # Average the metrics over the number of folds
     for split, split_metrics in kfold_stats['metrics'].items():
-        for metric, val in split_metrics.items():
+        for metric, _ in split_metrics.items():
             kfold_stats['metrics'][split][metric] /= kfold.get_n_splits(X=dummy_X)
-    kfold_score = stats['metrics'][lib.VAL]['score']
+    kfold_score = kfold_stats['metrics'][lib.VAL]['score']
     
+    # Write stats to file
     trial_stats.append(
         {
-            **stats,
+            **kfold_stats,
             'trial_id': trial.number,
             'tuning_time': lib.format_seconds(timer()),
         }

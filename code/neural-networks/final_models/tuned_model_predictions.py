@@ -225,62 +225,41 @@ if __name__=='__main__':
         plt.close()
 
 
-    ############################
-    # SHAP and stability plots #
-    ############################
-    # random_seeds = [12, 34, 56, 78, 90]
-    # tuned_model_paths = {
-    #     f'ResNet_{seed}': f'ckpts/resnet_checkpoint_{seed}.pt' 
-    #         for seed in random_seeds
-    # }
-    # with open('olink_proteomic/feature_names.txt', 'r') as f:
-    #     olink_names = f.read().strip('\n').splitlines()
+    ###############
+    # SHAP  plots #
+    ###############
+    tuned_model_paths = {
+        'MLP': 'ckpts/MLP_checkpoint.pt',
+        'ResNet': 'ckpts/ResNet_checkpoint.pt',
+        'TabR': 'ckpts/TabR_checkpoint.pt',
+        'Transformer': 'ckptsTransformer_checkpoint.pt'
+    }
+    with open('olink_proteomic/feature_names.txt', 'r') as f:
+        olink_names = f.read().strip('\n').splitlines()
 
-    # preds_df = pd.DataFrame({'real_values': y})
+    preds_df = pd.DataFrame({'real_values': y})
     
-    # fig = plt.figure()
-    # ax_cnt = 0
-    # for model_name, model_path in tuned_model_paths.items():
-    #     random_seed = int(model_path.split('_')[-1].split('.')[0])
-    #     zero.set_randomness(random_seed)
+    for model_name, model_path in tuned_model_paths.items():
+        fig = plt.figure()
+        ax_cnt = 0
         
-    #     predictions = np.squeeze(nn_predict(model_path, data, device=torch.device('cpu')))
-    #     preds_df[f'{model_name}'] = predictions
+        random_seed = int(model_path.split('_')[-1].split('.')[0])
+        zero.set_randomness(random_seed)
+        
+        predictions = np.squeeze(nn_predict(model_path, data, device=torch.device('cpu')))
+        preds_df[f'{model_name}'] = predictions
 
-    #     ax = fig.add_subplot(2, 3, ax_cnt+1)
-    #     shap_plots(model_path, data, feature_names=olink_names, 
-    #                device=torch.device(5))
-    #     ax.set_title(f'Random seed: {random_seed}')
-    #     ax_cnt += 1
+        ax = fig.add_subplot(2, 3, ax_cnt+1)
+        shap_plots(model_path, data, feature_names=olink_names, 
+                   device=torch.device(5))
+        ax.set_title(f'Random seed: {random_seed}')
     
-    # # SHAP plot
-    # name = f'output/SHAPplot_UKB_ResNet.png'
-    # fig.savefig(
-    #     name,
-    #     dpi=600,
-    #     transparent=False,
-    #     bbox_inches="tight"
-    # )
-    # plt.close()
-        
-    # # Stability plot
-    # preds_df.drop(columns=['real_values'], inplace=True)
-    # fig, axes = plt.subplots(preds_df.shape[1], preds_df.shape[1], 
-    #                          figsize=(10, 10), sharex=True, sharey=True)
-    # for i in range(preds_df.shape[1]):
-    #     for j in range(i+1, preds_df.shape[1]):
-    #         col1 = preds_df.columns[i]
-    #         col2 = preds_df.columns[j]
-    #         axes[j, i].scatter(preds_df[col1], preds_df[col2], alpha=0.5, s=6)
-    #         r2 = r2_score(preds_df[col1], preds_df[col2])
-    #         axes[j, i].text(.05, .95, f'R² = {r2:.4f}', ha='left', va='top', 
-    #                         transform=axes[j, i].transAxes)
-    # for i in range(preds_df.shape[1]):
-    #     axes[i, 0].set_ylabel(preds_df.columns[i])
-    #     axes[-1, i].set_xlabel(preds_df.columns[i])
-    # name = 'output/stability_plot_ResNet.png'
-    # plt.savefig(name, 
-    #             dpi=300, 
-    #             transparent=False,
-    #             bbox_inches='tight')
-    # plt.close()
+        # SHAP plot
+        name = f'output/SHAPplot_UKB_{model_name}.png'
+        fig.savefig(
+            name,
+            dpi=600,
+            transparent=False,
+            bbox_inches="tight"
+        )
+        plt.close()

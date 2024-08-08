@@ -5,9 +5,9 @@ seed=3456
 #########################
 # Hyperparameter tuning #
 #########################
-# rm -r data/olink_proteomic
-# cp -r data/olink_proteomic_base data/olink_proteomic
-# python bin/go.py --n_seeds 1 exp/${model}/olink_proteomic/${seed}-tuning.toml
+rm -r data/olink_proteomic
+cp -r data/olink_proteomic_base data/olink_proteomic
+python bin/go.py --n_seeds 1 exp/${model}/olink_proteomic/${seed}-tuning.toml
 
 ########################################
 # Train best model on all trainig data #

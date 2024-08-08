@@ -7,10 +7,10 @@ main_seed=3456
 #########################
 # Hyperparameter tuning #
 #########################
-# cp -r data data_${model}
-# rm -r data_${model}/olink_proteomic
-# cp -r data_${model}/olink_proteomic_base data_${model}/olink_proteomic
-# python bin/tune.py output/olink_proteomic/${model}/tuning/${main_seed}.toml
+cp -r data data_${model}
+rm -r data_${model}/olink_proteomic
+cp -r data_${model}/olink_proteomic_base data_${model}/olink_proteomic
+python bin/tune.py output/olink_proteomic/${model}/tuning/${main_seed}.toml
 
 ########################################
 # Train best model on all trainig data #
@@ -52,31 +52,3 @@ do
 
     python bin/${model}.py output/olink_proteomic/${model}/tuned/${sd}.toml 
 done
-
-#################################################
-# Predictions on entire dataset using 5-fold CV #
-#################################################
-# rm -r data_${model}/olink_proteomic
-# cp -r data_${model}/olink_proteomic_base data_${model}/olink_proteomic
-
-# best_tuning_toml=output/olink_proteomic/${model}/tuning/${main_seed}/best.toml
-# final_folder=output/olink_proteomic/${model}/final
-# final_toml=${final_folder}/${main_seed}.toml
-
-# mkdir $final_folder 
-# cp $best_tuning_toml $final_toml
-
-# # Write params to final toml
-# temp_file=$(mktemp)
-# echo "program = 'bin/"$model".py'" > $temp_file
-# echo "" >> $temp_file
-# cat "$final_toml" >> "$temp_file"
-# mv "$temp_file" "$final_toml"
-
-# echo "" >> $final_toml
-# echo "[kfold]" >> $final_toml
-# echo "n_splits = 5" >> $final_toml
-# echo "shuffle = true" >> $final_toml
-# echo "random_state = "$main_seed"" >> $final_toml
-
-# python bin/kfold_cv_predictions.py $final_toml

@@ -14,17 +14,16 @@ import time
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union, Dict
+from typing import Any, Dict, Optional, Union
 
 import delu
+import lib
 import numpy as np
 import optuna
 import optuna.samplers
 import optuna.trial
-from sklearn.model_selection import KFold
-
-import lib
 from lib import KWArgs
+from sklearn.model_selection import KFold
 
 
 # %%
@@ -160,6 +159,7 @@ def main(
             (dataset_info['train_size']+dataset_info['val_size'], 
             dataset_info['n_num_features']+dataset_info['n_cat_features']))
         
+        # Run 5-fold cross-validation
         kfold_report = {}
         for train_idxs, val_idxs in kfold.split(X=dummy_X):
             lib.write_kfold_data(

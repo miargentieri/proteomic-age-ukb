@@ -1,6 +1,8 @@
 # Proteomic aging clock predicts mortality and risk of common age-related diseases in diverse populations
 
-This directory contains the code used for data preparation, analysis, tables, and figure creation for the publication "Proteomic aging clock predicts mortality and risk of common age-related diseases in diverse populations." Published in Nature Medicine (2024). DOI: 10.1038/s41591-024-03164-7.  
+*** While the `ProtAge` and `ProtAge20` models are not available in this repository, we are in the process of developing a Python package for users to calculate the `ProtAge` and `ProtAge20` models in non-UKB proteomic data for non-commercial use. Please contact Austin Agentieri (aargentieri@mgh.harvard.edu) to discuss early access to these models if you have a pressing time deadline and we can help you with early access. Otherwise, this repository will be updated with a link to the corresponding Python package repository when ready. ***
+
+This directory contains the code used for data preparation, analysis, tables, and figure creation for the publication "Proteomic aging clock predicts mortality and risk of common age-related diseases in diverse populations." Published in Nature Medicine (2024). [DOI: 10.1038/s41591-024-03164-7](https://doi.org/10.1038/s41591-024-03164-7).
 
 This repository was created on Sun July 14 2024.
 

@@ -410,7 +410,7 @@ callbacks = [lgb.log_evaluation(period=1), lgb.early_stopping(20, verbose=False)
 model.fit(
     X=data_dict['X_train'][selected_features], 
     y=data_dict['y_train'],  
-    eval_set=[(X_ckb, y_ckb)],
+    eval_set=[(data_dict['X_test'][selected_features], data_dict['y_test'])],
     eval_metric=r2_score_lgbm,
     callbacks=callbacks,
     sample_weight=None
@@ -448,7 +448,7 @@ callbacks = [lgb.log_evaluation(period=1), lgb.early_stopping(20, verbose=False)
 model.fit(
     X=data_dict['X_train'][selected_features], 
     y=data_dict['y_train'],  
-    eval_set=[(X_ckb_all, y_ckb_all)],
+    eval_set=[(data_dict['X_test'][selected_features], data_dict['y_test'])],
     eval_metric=r2_score_lgbm,
     callbacks=callbacks,
     sample_weight=None

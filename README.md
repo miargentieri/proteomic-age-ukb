@@ -33,10 +33,10 @@ This project is licensed under a dual-license model:
 1. **Academic Use**: Free under the MIT License for academic and non-commercial use.
 2. **Commercial Use**: Requires a commercial license.
 
-For more information on licensing and to obtain a commercial license, please contact Austin Argentieri (aargentieri@mgh.harvard.edu).
+For more information on licensing and to obtain a commercial license, please contact Austin Argentieri (aargenti@broadinstitute.org).
 
 
 Author
 ------
 
-Please contact Austin Argentieri (aargentieri@mgh.harvard.edu) with any questions, comments, or concerns.
+Please contact Austin Argentieri (aargenti@broadinstitute.org) with any questions, comments, or concerns.
